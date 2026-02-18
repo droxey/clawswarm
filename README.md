@@ -322,6 +322,7 @@ LiteLLM sits between OpenClaw and LLM providers, adding per-model rate limiting,
 ```bash
 cat > /opt/openclaw/config/litellm-config.yaml << 'EOF'
 model_list:
+  # ── Chat Models ────────────────────────────────────────────────────
   - model_name: "anthropic/claude-opus-4-6"
     litellm_params:
       model: "claude-opus-4-6"
@@ -341,17 +342,39 @@ model_list:
       max_budget: 20.0
       rpm: 300
 
+  # ── Embedding Model (for semantic cache) ───────────────────────────
+  # Voyage AI is already whitelisted in Squid (Step 3) and provisioned
+  # for OpenClaw memory (Step 8). voyage-3-lite is the cheapest option
+  # at $0.02/1M tokens — cache embedding calls cost fractions of a cent.
+  - model_name: "voyage-cache-embed"
+    litellm_params:
+      model: "voyage/voyage-3-lite"
+      api_key: "os.environ/VOYAGE_API_KEY"
+
 general_settings:
   master_key: "os.environ/LITELLM_MASTER_KEY"
   alerting: ["log"]
 
-# In-memory response cache — eliminates redundant API calls for repeated prompts.
-# Identical requests within the TTL window return cached responses at zero token cost.
+# Redis semantic cache — survives container restarts and deduplicates
+# semantically similar prompts (not just exact matches). A prompt that is
+# ≥80% similar to a cached one returns the cached response at zero LLM cost.
+# Requires the redis-stack-server container (Step 3) for RediSearch vectors.
 litellm_settings:
   cache: true
   cache_params:
-    type: "local"
-    ttl: 600                   # seconds — cache responses for 10 minutes
+    type: "redis-semantic"
+    host: "openclaw-redis"
+    port: 6379
+    ttl: 3600                  # seconds — cache responses for 1 hour
+    similarity_threshold: 0.8  # 0-1 scale; 0.8 balances hit rate vs accuracy
+    redis_semantic_cache_embedding_model: "voyage-cache-embed"
+    supported_call_types:
+      - "acompletion"
+      - "atext_completion"
+  # Prometheus metrics — scraped by the monitoring stack (compose.monitoring.yml)
+  service_callbacks: ["prometheus"]
+  json_logs: true
+  turn_off_message_logging: true  # redact prompt/response content from logs
 
 # Retry and fallback routing — handles transient provider errors and rate limits.
 router_settings:
@@ -362,6 +385,8 @@ router_settings:
 EOF
 ```
 
+> **Why Redis semantic cache over local?** The in-memory (`local`) cache dies with the container and only matches exact prompts. Redis semantic cache persists across restarts and matches *similar* prompts using vector embeddings — so "What's the weather in NYC?" and "Tell me NYC weather" hit the same cache entry. The embedding call through Voyage 3 Lite costs $0.02/1M tokens (fractions of a cent per lookup), while a cache hit saves the full LLM call ($3-15/1M tokens for Opus). At 0.8 similarity threshold, false positives are rare but genuine deduplication is high — expect 15-30% cache hit rates on typical conversational workloads.
+>
 > **Why three model tiers?** Token costs dominate OpenClaw's operating budget. Haiku handles ~75% of routine tasks (research, file ops, basic reasoning) at 1/10th the cost of Opus. Adding it to the model list lets you route different agent workloads to different price points via OpenClaw's model selection or LiteLLM's routing strategy. The `usage-based-routing-v2` strategy distributes load across models based on real-time usage, and `enable_pre_call_checks` rejects requests that would exceed monthly budget caps before they hit the provider API.
 
 > **Why a model proxy?** LLM API calls are the primary cost driver and the most variable load. Without a proxy, a runaway agent or prompt injection attack can burn through your API budget in minutes. LiteLLM gives you spend caps, per-model rate limits, and audit logging at the infrastructure level — not dependent on the agent behaving correctly.
@@ -469,12 +494,19 @@ services:
     environment:
       LITELLM_MASTER_KEY: "${LITELLM_MASTER_KEY}"
       ANTHROPIC_API_KEY: "${ANTHROPIC_API_KEY}"
+      VOYAGE_API_KEY: "${VOYAGE_API_KEY}"
+      REDIS_HOST: "openclaw-redis"
+      REDIS_PORT: "6379"
       HTTP_PROXY: http://openclaw-egress:3128
       HTTPS_PROXY: http://openclaw-egress:3128
+      NO_PROXY: openclaw-redis,localhost,127.0.0.1
     networks:
       - openclaw-net
     security_opt:
       - no-new-privileges:true
+    depends_on:
+      redis:
+        condition: service_healthy
     healthcheck:
       test: ["CMD-SHELL", "wget --no-verbose --tries=1 --spider http://localhost:4000/health/liveliness || exit 1"]
       interval: 30s
@@ -516,6 +548,39 @@ services:
           memory: 128M
     restart: unless-stopped
 
+  redis:
+    image: redis/redis-stack-server:7.4.0-v3
+    container_name: openclaw-redis
+    volumes:
+      - redis-data:/data
+    networks:
+      - openclaw-net
+    read_only: true
+    tmpfs:
+      - /tmp:size=32M
+    security_opt:
+      - no-new-privileges:true
+    command: >
+      redis-server
+      --maxmemory 96mb
+      --maxmemory-policy allkeys-lru
+      --save 300 10
+      --appendonly no
+      --protected-mode no
+      --loadmodule /opt/redis-stack/lib/redisearch.so
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+    deploy:
+      resources:
+        limits:
+          cpus: "0.25"
+          memory: 128M
+    restart: unless-stopped
+
 networks:
   openclaw-net:
     driver: bridge
@@ -527,6 +592,7 @@ networks:
 
 volumes:
   openclaw-data:
+  redis-data:
 COMPOSE_EOF
 ```
 
@@ -535,7 +601,7 @@ COMPOSE_EOF
 > - **`proxy-net`** — reverse proxy (Step 9) reaches the gateway without joining the internal network.
 > - **`egress-net`** — gives `openclaw-egress` (Squid) a route to the internet for whitelisted LLM API domains.
 >
-> The `openclaw` service is on `openclaw-net` + `proxy-net`. The egress proxy is on `openclaw-net` + `egress-net`. The docker-proxy stays on `openclaw-net` only — fully isolated.
+> The `openclaw` service is on `openclaw-net` + `proxy-net`. The egress proxy is on `openclaw-net` + `egress-net`. The docker-proxy and Redis stay on `openclaw-net` only — fully isolated.
 >
 > **Known trade-off**: `proxy-net` is not `internal` (Caddy needs it to reach Let's Encrypt for ACME challenges). This means the `openclaw` Gateway process — but not sandbox containers (`network=none`) — has an internet-routable network interface. Well-behaved HTTP clients honor `HTTPS_PROXY` and route through Squid, but a subprocess that ignores proxy env vars could bypass the egress whitelist. If using Cloudflare Tunnel instead of Caddy (Option B, Step 9), you can add `internal: true` to `proxy-net` to close this gap.
 
@@ -549,22 +615,23 @@ openssl rand -hex 32 > /opt/openclaw/.env.tmp
 echo "LITELLM_MASTER_KEY=$(cat /opt/openclaw/.env.tmp)" > /opt/openclaw/.env
 rm -f /opt/openclaw/.env.tmp
 
-# Add your Anthropic API key (type/paste — do not pass keys as CLI args)
+# Add your API keys (type/paste — do not pass keys as CLI args)
 nano /opt/openclaw/.env
 # Add: ANTHROPIC_API_KEY=sk-ant-your-key-here
+# Add: VOYAGE_API_KEY=pa-your-key-here  (for semantic cache embeddings + memory)
 
 chmod 600 /opt/openclaw/.env
 
 docker compose up -d
 ```
 
-Verify all four services are healthy:
+Verify all five services are healthy:
 
 ```bash
 docker compose ps
 ```
 
-All four containers should show `healthy` status within 60 seconds. If `openclaw` shows `starting` for longer than 90 seconds, check logs:
+All five containers should show `healthy` status within 60 seconds. If `openclaw` shows `starting` for longer than 90 seconds, check logs:
 
 ```bash
 docker compose logs openclaw --tail 50
@@ -751,8 +818,8 @@ openclaw config set agents.defaults.model "anthropic/claude-opus-4-6"
 # maxTokens capped at 4096 in Step 5 — override here if you need longer outputs
 # 2026.2.17 auto-clamps maxTokens to contextWindow, so invalid values fail fast
 
-# Voyage AI key for memory embeddings (Step 8) — this one stays in OpenClaw
-# because Voyage bypasses LiteLLM (but still routes through Squid egress proxy)
+# Voyage AI key for memory embeddings (Step 8) — also used by LiteLLM for
+# semantic cache embeddings (set in host .env during Step 4 and passed to both)
 nano /root/.openclaw/.env
 # Add: VOYAGE_API_KEY=pa-your-key-here
 
@@ -766,6 +833,7 @@ To add or rotate LLM provider API keys, edit `/opt/openclaw/.env` on the host an
 ```bash
 nano /opt/openclaw/.env
 # ANTHROPIC_API_KEY=sk-ant-your-key-here
+# VOYAGE_API_KEY=pa-your-key-here (shared: LiteLLM semantic cache + OpenClaw memory)
 # OPENAI_API_KEY=sk-your-key-here (if needed)
 # LITELLM_MASTER_KEY=<already set in Step 4>
 docker compose restart litellm
@@ -779,7 +847,7 @@ OpenClaw's default settings optimize for capability, not cost. Without tuning, i
 |-------------|-------------------|------------------------|
 | Heartbeat → Haiku routing | Step 5 (`model.heartbeat`) | ~$600-1,800 (was $2-5/day idle) |
 | maxTokens cap (4096) | Step 5 (`maxTokens`) | ~$200-500 (prevents runaway output) |
-| LiteLLM response cache | Step 3 (`cache_params`) | ~$100-300 (eliminates repeated calls) |
+| Redis semantic cache | Step 3 (`redis-semantic`) | ~$200-600 (deduplicates similar prompts, survives restarts) |
 | LiteLLM pre-call budget checks | Step 3 (`enable_pre_call_checks`) | Prevents budget overruns entirely |
 | Haiku model tier availability | Step 3 (`litellm-config`) | 60-80% cost reduction on routine tasks |
 
@@ -960,12 +1028,13 @@ docker exec openclaw openclaw sandbox explain
 
 # ── Container Health ─────────────────────────────────────────────────
 docker compose ps
-# All four containers should show "healthy"
+# All five containers should show "healthy"
 
 docker inspect openclaw --format '{{json .State.Health}}'
 docker inspect openclaw-docker-proxy --format '{{json .State.Health}}'
 docker inspect openclaw-litellm --format '{{json .State.Health}}'
 docker inspect openclaw-egress --format '{{json .State.Health}}'
+docker inspect openclaw-redis --format '{{json .State.Health}}'
 
 # ── LiteLLM Proxy ───────────────────────────────────────────────────
 # Health check (should return 200)
@@ -973,11 +1042,22 @@ docker exec openclaw wget -qO- http://openclaw-litellm:4000/health/liveliness
 # Model list (should show configured models)
 docker exec openclaw wget -qO- http://openclaw-litellm:4000/models
 
+# ── Redis Semantic Cache ─────────────────────────────────────────────
+# Connectivity check
+docker exec openclaw-redis redis-cli ping
+# Expected: PONG
+
+# Memory usage (should be well under 96 MB limit)
+docker exec openclaw-redis redis-cli info memory | grep used_memory_human
+# Cache key count (grows as unique prompts are cached)
+docker exec openclaw-redis redis-cli dbsize
+
 # ── Resource Limits (8 GB budget) ───────────────────────────────────
-# Worst-case: 4G openclaw + 1G litellm + 128M proxy + 128M squid + 3×768M sandboxes(+swap) = ~7.5G
-# Remaining ~500M covers: OS page cache, Docker daemon, reverse proxy
-# In practice, openclaw reserves 2G and scales up on demand; sandboxes are ephemeral.
-# Sandbox swap capped at 768M (memorySwap) prevents unbounded host swap pressure.
+# Base: 4G openclaw + 1G litellm + 128M proxy + 128M squid + 128M redis = ~5.4G
+# Sandboxes: 3 × 512M (768M swap cap) = ~1.5G peak → total ~6.9G
+# Monitoring overlay adds ~544M (256M prometheus + 256M grafana + 32M exporter)
+# With monitoring: reduce maxConcurrent sandboxes to 2, total ~7.5G
+# Remaining covers: OS page cache, Docker daemon, reverse proxy
 docker stats --no-stream
 
 # ── Network Connectivity ─────────────────────────────────────────────
@@ -1154,6 +1234,8 @@ Local backups on the same box are not disaster recovery. Push encrypted backups 
 | Container OOM-killed | `dmesg \| grep -i oom`, `docker inspect <container> --format '{{.State.OOMKilled}}'` | Check `docker stats` — on 8 GB host, total container limits must stay under ~4.5G. Reduce `maxTokens` or concurrent sandbox count if openclaw peaks |
 | High swap usage | `free -h`, `vmstat 1 5` | If swap > 1 GB consistently, reduce `agents.defaults.sandbox.docker.memoryLimit` or lower openclaw memory limit to 3G |
 | Config error after update | `docker exec openclaw openclaw doctor --repair` | Restore from backup: `docker exec openclaw cp /root/.openclaw/config.json.bak /root/.openclaw/config.json` and restart. See Step 5 backup note |
+| Redis unreachable / LiteLLM cache errors | `docker exec openclaw-redis redis-cli ping`, `docker logs openclaw-litellm --tail 50 \| grep -i redis` | Verify redis container is healthy, check `REDIS_HOST` env var in LiteLLM, verify both are on `openclaw-net`. LiteLLM falls back to no-cache if Redis is unavailable — service continues, just without caching |
+| Low cache hit rate | `docker exec openclaw-redis redis-cli dbsize`, check Prometheus `litellm_cache_hit_metric_total` | Normal for first 24 hours. If persistently < 5%, lower `similarity_threshold` from 0.8 to 0.7 in `litellm-config.yaml` and restart LiteLLM |
 
 ### Step 13: High Availability and Disaster Recovery
 
@@ -1174,7 +1256,7 @@ Steps 1 and 3 established these HA building blocks. This section explains **why*
 
 #### 13.2 Health Monitoring Watchdog
 
-This script runs every 5 minutes via cron, checks all four service containers, and alerts on unhealthy state or restart loops. It catches problems that Docker's built-in restart policy handles silently.
+This script runs every 5 minutes via cron, checks all five service containers, and alerts on unhealthy state or restart loops. It catches problems that Docker's built-in restart policy handles silently.
 
 ```bash
 cat > /opt/openclaw/monitoring/watchdog.sh << 'SCRIPT_EOF'
@@ -1185,7 +1267,7 @@ LOG="/opt/openclaw/monitoring/logs/watchdog.log"
 ALERT_FILE="/opt/openclaw/monitoring/.last-alert"
 ALERT_COOLDOWN=1800  # seconds — don't re-alert for the same issue within 30 min
 
-CONTAINERS=("openclaw" "openclaw-docker-proxy" "openclaw-egress" "openclaw-litellm")
+CONTAINERS=("openclaw" "openclaw-docker-proxy" "openclaw-egress" "openclaw-litellm" "openclaw-redis")
 RESTART_THRESHOLD=3   # alert if a container has restarted more than this many times
 DISK_THRESHOLD=85     # alert if disk usage exceeds this percentage
 MEMORY_THRESHOLD=90   # alert if memory usage exceeds this percentage
@@ -1302,6 +1384,180 @@ Add the watchdog to root's crontab alongside the existing backup and rotation jo
 ```
 
 > **Why 5-minute intervals?** Fast enough to catch problems before users report them, slow enough to avoid cron overhead on an 8 GB host. For tighter monitoring, reduce to `*/2` — but ensure the alert cooldown prevents notification floods.
+
+#### 13.2.1 Optional: Prometheus + Grafana Monitoring Stack
+
+The watchdog script catches binary states (up/down, healthy/unhealthy). For continuous metrics — request latency, token spend over time, cache hit rates, error percentages — add Prometheus and Grafana as a Compose overlay.
+
+**Resource cost**: ~256 MB RAM total (Prometheus ~128 MB, Grafana ~128 MB). On the Starter tier (8 GB), this requires reducing sandbox concurrency from 3 to 2. On Growth tier (16 GB+), it fits without trade-offs.
+
+Create the Prometheus scrape config:
+
+```bash
+cat > /opt/openclaw/config/prometheus.yml << 'EOF'
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+
+scrape_configs:
+  - job_name: "litellm"
+    metrics_path: /metrics
+    static_configs:
+      - targets: ["openclaw-litellm:4000"]
+    # Scrape only the metrics endpoint — no auth needed for /metrics
+    scrape_interval: 30s
+
+  - job_name: "redis"
+    metrics_path: /metrics
+    static_configs:
+      - targets: ["openclaw-redis-exporter:9121"]
+    scrape_interval: 60s
+EOF
+chmod 644 /opt/openclaw/config/prometheus.yml
+```
+
+Create the Compose overlay:
+
+```bash
+cat > /opt/openclaw/compose.monitoring.yml << 'EOF'
+services:
+  prometheus:
+    image: prom/prometheus:v3.2.1
+    container_name: openclaw-prometheus
+    volumes:
+      - ./config/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - prometheus-data:/prometheus
+    command:
+      - "--config.file=/etc/prometheus/prometheus.yml"
+      - "--storage.tsdb.path=/prometheus"
+      - "--storage.tsdb.retention.time=14d"
+      - "--storage.tsdb.retention.size=2GB"
+      - "--web.enable-lifecycle"
+    networks:
+      - openclaw-net
+    read_only: true
+    tmpfs:
+      - /tmp:size=32M
+    security_opt:
+      - no-new-privileges:true
+    healthcheck:
+      test: ["CMD", "promtool", "check", "healthy"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 15s
+    deploy:
+      resources:
+        limits:
+          cpus: "0.5"
+          memory: 256M
+    restart: unless-stopped
+
+  grafana:
+    image: grafana/grafana-oss:11.5.2
+    container_name: openclaw-grafana
+    volumes:
+      - grafana-data:/var/lib/grafana
+    environment:
+      GF_SECURITY_ADMIN_PASSWORD: "${GRAFANA_ADMIN_PASSWORD}"
+      GF_SERVER_ROOT_URL: "https://openclaw.yourdomain.com/grafana/"
+      GF_SERVER_SERVE_FROM_SUB_PATH: "true"
+      GF_USERS_ALLOW_SIGN_UP: "false"
+      GF_AUTH_ANONYMOUS_ENABLED: "false"
+      GF_ANALYTICS_REPORTING_ENABLED: "false"
+    networks:
+      - openclaw-net
+      - proxy-net
+    security_opt:
+      - no-new-privileges:true
+    depends_on:
+      prometheus:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "wget --no-verbose --tries=1 --spider http://localhost:3000/api/health || exit 1"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 20s
+    deploy:
+      resources:
+        limits:
+          cpus: "0.5"
+          memory: 256M
+    restart: unless-stopped
+
+  redis-exporter:
+    image: oliver006/redis_exporter:v1.67.0
+    container_name: openclaw-redis-exporter
+    environment:
+      REDIS_ADDR: "openclaw-redis:6379"
+    networks:
+      - openclaw-net
+    security_opt:
+      - no-new-privileges:true
+    deploy:
+      resources:
+        limits:
+          cpus: "0.1"
+          memory: 32M
+    restart: unless-stopped
+
+networks:
+  openclaw-net:
+    external: true
+    name: openclaw_openclaw-net
+  proxy-net:
+    external: true
+    name: openclaw_proxy-net
+
+volumes:
+  prometheus-data:
+  grafana-data:
+EOF
+```
+
+Set the Grafana admin password and deploy:
+
+```bash
+# Generate a strong Grafana password
+echo "GRAFANA_ADMIN_PASSWORD=$(openssl rand -base64 24)" >> /opt/openclaw/.env
+chmod 600 /opt/openclaw/.env
+
+# Deploy with monitoring overlay
+docker compose -f docker-compose.yml -f compose.monitoring.yml up -d
+```
+
+Add the Grafana route to your Caddyfile (or Cloudflare Tunnel config):
+
+```
+openclaw.yourdomain.com {
+    # Grafana dashboard (behind Grafana's own auth)
+    handle_path /grafana/* {
+        reverse_proxy openclaw-grafana:3000
+    }
+
+    # Default: OpenClaw gateway
+    reverse_proxy openclaw:18789
+}
+```
+
+**Configure the Prometheus data source in Grafana:**
+
+1. Open `https://openclaw.yourdomain.com/grafana/` and log in with the admin password.
+2. Navigate to **Connections → Data Sources → Add data source**.
+3. Select **Prometheus**, set URL to `http://openclaw-prometheus:9090`, click **Save & Test**.
+
+**Key metrics to monitor:**
+
+| Metric | PromQL | What It Tells You |
+|--------|--------|-------------------|
+| LLM spend rate | `rate(litellm_spend_metric_total[1h])` | Dollars/hour burn rate across all models |
+| Request latency P95 | `histogram_quantile(0.95, rate(litellm_request_total_latency_metric_bucket[5m]))` | 95th percentile response time |
+| Cache hit rate | `rate(litellm_cache_hit_metric_total[5m]) / (rate(litellm_cache_hit_metric_total[5m]) + rate(litellm_cache_miss_metric_total[5m]))` | Semantic cache effectiveness |
+| Error rate | `rate(litellm_error_metric_total[5m])` | Failed LLM calls per second |
+| Redis memory | `redis_memory_used_bytes / redis_memory_max_bytes` | Cache memory pressure |
+
+> **Starter tier trade-off**: On the 8 GB box, enabling the monitoring stack pushes total worst-case memory to ~8.1G. To compensate, reduce concurrent sandboxes from 3 to 2: `openclaw config set agents.defaults.sandbox.docker.maxConcurrent 2`. On Growth tier (16 GB+), this trade-off is unnecessary.
 
 #### 13.3 Unattended Security Updates
 
@@ -1538,7 +1794,7 @@ echo "=== Post-Recovery Verification ==="
 
 # 1. All containers healthy
 echo "── Container Health ──"
-for ctr in openclaw openclaw-docker-proxy openclaw-egress openclaw-litellm; do
+for ctr in openclaw openclaw-docker-proxy openclaw-egress openclaw-litellm openclaw-redis; do
   health=$(docker inspect "$ctr" --format '{{if .State.Health}}{{.State.Health.Status}}{{else}}running{{end}}' 2>/dev/null || echo "MISSING")
   printf "  %-30s %s\n" "$ctr" "$health"
 done
@@ -1598,6 +1854,7 @@ docker pull openclaw/openclaw:2026.2.17
 docker pull tecnativa/docker-socket-proxy:0.6.0
 docker pull ubuntu/squid:6.6-24.04_edge
 docker pull ghcr.io/berriai/litellm:main-v1.81.3-stable
+docker pull redis/redis-stack-server:7.4.0-v3
 docker pull caddy:2-alpine    # if using Caddy
 ```
 
@@ -1742,9 +1999,9 @@ The fastest path to handling more concurrent users and heavier tool execution lo
 
 | Tier | Spec | Use Case |
 |------|------|----------|
-| **Starter** (current) | 4 vCPU, 8 GB RAM, 150 GB SSD | 1-3 concurrent users, light tool use |
-| **Growth** | 8 vCPU, 16 GB RAM, 300 GB SSD | 5-10 concurrent users, moderate tool + sandbox use |
-| **Production** | 16 vCPU, 32 GB RAM, 500 GB NVMe | 10-25 concurrent users, heavy sandbox + memory/RAG |
+| **Starter** (current) | 4 vCPU, 8 GB RAM, 150 GB SSD | 1-3 concurrent users, light tool use. Monitoring overlay requires reducing sandboxes to 2. |
+| **Growth** | 8 vCPU, 16 GB RAM, 300 GB SSD | 5-10 concurrent users, monitoring + full sandbox concurrency |
+| **Production** | 16 vCPU, 32 GB RAM, 500 GB NVMe | 10-25 concurrent users, heavy sandbox + memory/RAG + room for Redis growth |
 
 After upgrading the server, update `docker-compose.yml` resource limits:
 
@@ -1767,6 +2024,12 @@ services:
           cpus: "0.5"
           memory: 256M
   docker-proxy:
+    deploy:
+      resources:
+        limits:
+          cpus: "0.5"
+          memory: 256M
+  redis:
     deploy:
       resources:
         limits:
