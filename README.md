@@ -1,7 +1,7 @@
 # OpenClaw Hardened Single-Server Deployment (2026.2)
 
 **Production-grade, least-privilege OpenClaw deployment on a single server using Docker Compose.**
-Full security posture — socket proxy, egress whitelist, and sandbox hardening — without multi-node orchestration overhead.
+Full security posture — socket proxy, egress whitelist, and sandbox hardening.
 
 ## Key Information
 
