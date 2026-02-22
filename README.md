@@ -1,14 +1,15 @@
-# OpenClaw Hardened Single-Server Deployment (2026.2)
+# OpenClaw Hardened VPS Deployment (2026.2)
 
 **Production-grade, least-privilege OpenClaw deployment on a single server using Docker Compose.**
 Full security posture — socket proxy, egress whitelist, and sandbox hardening.
 
-## Key Information
+### KVM VPS Specs
 
-- **Target**: 1 Ubuntu 24.04 KVM VPS (4 vCPU, 8 GB RAM, 4 GB swap, 150 GB SSD)
-- **OpenClaw Version**: `openclaw/openclaw:2026.2.17` (pinned)
-- **Threat Model**: Prompt injection → arbitrary tool execution → host/container escape
-- **Orchestration**: Docker Compose v2
+- 4 vCPU
+- 8 GB RAM
+- 4 GB swap
+- 150 GB SSD
+- Ubuntu 24.04
 
 ### Why Single-Server?
 
