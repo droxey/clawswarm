@@ -92,7 +92,6 @@
     name: docker
     state: started
     enabled: true
-  when: docker_check.rc != 0
 
 - name: Add deploy user to docker group
   ansible.builtin.user:
