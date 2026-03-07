@@ -18,6 +18,12 @@ clincher/
 ├── README.md                    # Primary artifact: 14-step deployment guide + Ansible docs
 ├── USECASES.md                  # Community use cases and example deployments
 ├── LINKS.md                     # Curated links to skills, use cases, community resources
+├── prompts/                     # Agent-agnostic reusable prompts (see prompts/README.md)
+│   ├── README.md                # Index + cross-repo/cross-agent usage instructions
+│   ├── humanizer.prompt.md      # Remove AI writing patterns from text
+│   ├── ansible-review.prompt.md # Production-grade Ansible code review
+│   ├── github-deployment-guide.prompt.md
+│   └── github-smallproject-virality.prompt.md
 ├── .claude/
 │   └── settings.local.json      # Claude Code permissions and output style config
 ├── ansible.cfg                  # SSH pipelining, YAML output, retry config
@@ -39,7 +45,7 @@ clincher/
     └── monitoring/              # Step 13.2.1: Prometheus + Grafana (optional)
 ```
 
-The egress proxy (Smokescreen) is built from source via a multi-stage Dockerfile. Docker Compose specs and shell scripts are embedded in `README.md`. The Ansible files at the repo root provide Jinja2-templated versions of these same configs for automated deployment.
+The egress proxy (Smokescreen) is built from source via a multi-stage Dockerfile. Docker Compose specs and shell scripts are embedded in `README.md`. The Ansible files at the repo root provide Jinja2-templated versions of these same configs for automated deployment. The `prompts/` directory contains agent-agnostic prompt files (`.prompt.md`) that work with any AI assistant and can be reused across repositories.
 
 ## Architecture
 
@@ -135,6 +141,7 @@ Since this is a docs-only repo, changes are typically:
 - Security finding fixes (credential handling, firewall rules, hardening flags)
 - Integration fixes (network config, service ordering, egress ACLs)
 - README restructuring or clarification
+- Prompt additions or updates in `prompts/`
 - CLAUDE.md updates
 
 ### Commit Style
