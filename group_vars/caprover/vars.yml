@@ -6,6 +6,7 @@
 caprover_deploy_user: deploy
 caprover_ssh_port: 9922
 caprover_admin_ip: YOUR_ADMIN_IP
+caprover_ssh_public_key_path: "{{ lookup('env', 'HOME') }}/.ssh/id_ed25519.pub"
 
 # --- Domain ---
 caprover_wildcard_domain: "*.dev"

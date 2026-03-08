@@ -11,7 +11,7 @@
     method: POST
     body_format: json
     body:
-      password: "{{ caprover_captain_password | default(caprover_initial_password) }}"
+      password: "{{ caprover_captain_password }}"
     status_code: 200
   register: caprover_login
   no_log: true
@@ -47,17 +47,17 @@
           x-captain-auth: "{{ cap_token }}"
         status_code: [200, 400]
 
-    - name: Deploy Prometheus config
-      ansible.builtin.template:
-        src: prometheus.yml.j2
-        dest: /captain/data/config/prometheus/prometheus.yml
-        mode: "0644"
-
     - name: Ensure Prometheus config directory
       ansible.builtin.file:
         path: /captain/data/config/prometheus
         state: directory
         mode: "0755"
+
+    - name: Deploy Prometheus config
+      ansible.builtin.template:
+        src: prometheus.yml.j2
+        dest: /captain/data/config/prometheus/prometheus.yml
+        mode: "0644"
 
     - name: Configure Prometheus app
       ansible.builtin.uri:
@@ -106,18 +106,18 @@
           x-captain-auth: "{{ cap_token }}"
         status_code: [200, 400]
 
-    - name: Deploy Grafana datasource config
-      ansible.builtin.template:
-        src: grafana-datasource.yml.j2
-        dest: /captain/data/config/grafana/provisioning/datasources/prometheus.yml
-        mode: "0644"
-
     - name: Ensure Grafana provisioning directory
       ansible.builtin.file:
         path: /captain/data/config/grafana/provisioning/datasources
         state: directory
         mode: "0755"
         recurse: true
+
+    - name: Deploy Grafana datasource config
+      ansible.builtin.template:
+        src: grafana-datasource.yml.j2
+        dest: /captain/data/config/grafana/provisioning/datasources/prometheus.yml
+        mode: "0644"
 
     - name: Configure Grafana app
       ansible.builtin.uri:

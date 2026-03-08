@@ -21,6 +21,7 @@
 #   2. Secrets: cp group_vars/caprover/vault.yml.example group_vars/caprover/vault.yml
 #              ansible-vault encrypt group_vars/caprover/vault.yml
 #   3. Collections: ansible-galaxy install -r requirements.yml
+#   4. SSH key: Ensure ~/.ssh/id_ed25519.pub exists (or set caprover_ssh_public_key_path)
 
 # ═════════════════════════════════════════════════════════════════════
 # Phase 0: Bootstrap — Ensure deploy user SSH access on all nodes
@@ -87,7 +88,7 @@
         - name: Set authorized key
           ansible.posix.authorized_key:
             user: "{{ caprover_deploy_user }}"
-            key: "{{ lookup('file', '~/.ssh/id_ed25519.pub') }}"
+            key: "{{ lookup('file', caprover_ssh_public_key_path) }}"
             state: present
 
         - name: Grant passwordless sudo
@@ -116,7 +117,9 @@
           - caprover_ssh_port | int > 0
           - caprover_ssh_port | int < 65536
           - caprover_docker_ce_version is defined
-        fail_msg: "Required CapRover base variables are not set"
+          - caprover_admin_ip is defined
+          - caprover_admin_ip != 'YOUR_ADMIN_IP'
+        fail_msg: "Required CapRover base variables are not set — check group_vars/caprover/vars.yml"
         quiet: true
 
   roles:
@@ -183,6 +186,15 @@
              caprover_infisical_db_password is defined and
              caprover_infisical_db_password | length > 0)
         fail_msg: "App secrets must be set in vault for enabled apps"
+        quiet: true
+
+    - name: Validate OpenClaw target config
+      ansible.builtin.assert:
+        that:
+          - not (caprover_prometheus_enabled | bool) or
+            (openclaw_server_ip != 'YOUR_OPENCLAW_SERVER_IP' and
+             openclaw_server_domain != 'openclaw.yourdomain.com')
+        fail_msg: "openclaw_server_ip and openclaw_server_domain must be configured for Prometheus scraping"
         quiet: true
 
   roles:

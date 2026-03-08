@@ -87,7 +87,10 @@
     - name: Deploy CapRover via Docker
       ansible.builtin.command:
         cmd: >-
-          docker run -e ACCEPTED_TERMS=true
+          docker run -d
+          --name captain-captain
+          --restart unless-stopped
+          -e ACCEPTED_TERMS=true
           -e MAIN_NODE_IP_ADDRESS={{ ansible_host }}
           -p 80:80 -p 443:443 -p 3000:3000
           -v /var/run/docker.sock:/var/run/docker.sock
@@ -95,8 +98,6 @@
           caprover/caprover:{{ caprover_version }}
       when: caprover_service.stdout == ''
       changed_when: true
-      async: 120
-      poll: 10
 
     - name: Wait for CapRover to become healthy
       ansible.builtin.uri:
@@ -146,7 +147,7 @@
         method: POST
         body_format: json
         body:
-          password: "{{ caprover_captain_password | default(caprover_initial_password) }}"
+          password: "{{ caprover_captain_password }}"
         status_code: 200
       register: auth_response
       no_log: true
