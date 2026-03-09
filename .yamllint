@@ -2,8 +2,9 @@
 extends: default
 
 ignore:
-  - prompts/references/
-  - prompts/assets/
+  - venv/
+  - .claude/prompts/references/
+  - .claude/prompts/assets/
 
 rules:
   line-length:

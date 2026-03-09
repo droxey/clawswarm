@@ -1,8 +1,9 @@
 {
-  "outputStyle": "Explanatory",
   "permissions": {
     "allow": [
-      "Bash(git add:*)"
+      "Bash(git add:*)",
+      "Bash(source:*)"
     ]
-  }
+  },
+  "outputStyle": "Explanatory"
 }
