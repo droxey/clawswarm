@@ -44,7 +44,7 @@ One Ansible playbook handles everything — idempotently and safely re-runnable.
 # 1. Clone and configure
 git clone https://github.com/droxey/clincher.git && cd clincher
 cp group_vars/all/vault.yml.example group_vars/all/vault.yml
-$EDITOR group_vars/all/vault.yml          # add API keys, Telegram token, and 3 generated internal secrets
+$EDITOR group_vars/all/vault.yml          # add API keys, Telegram token, and 3 pre-generated internal secrets
 ansible-vault encrypt group_vars/all/vault.yml
 
 # 2. Point at your server
@@ -209,7 +209,7 @@ This repository contains an Ansible playbook that automates Steps 1-13 of this g
 On your **local machine** (the control node):
 
 ```bash
-apt install python3 python3-pip ansible-core
+sudo apt install python3 python3-pip ansible-core
 
 # Install Ansible (2.16+)
 pip install ansible
@@ -222,7 +222,7 @@ ansible-galaxy collection install -r requirements.yml
 Install `sshpass` only if the first bootstrap run will use `--ask-pass` or `ansible_password`; key-based deploys do not need it:
 
 ```bash
-apt install sshpass
+sudo apt install sshpass
 ```
 
 The **target server** needs only SSH access and Python 3 (Ubuntu 24.04 includes both).
@@ -238,14 +238,16 @@ The **target server** needs only SSH access and Python 3 (Ubuntu 24.04 includes 
 
 # 3. Create and encrypt your secrets vault
 cp group_vars/all/vault.yml.example group_vars/all/vault.yml
-#    Edit vault.yml — add API keys, Telegram bot token, and generated internal secrets
+#    Edit vault.yml — add API keys, Telegram bot token, and pre-generated internal secrets
 ansible-vault encrypt group_vars/all/vault.yml
 
 # 4. Deploy everything
 ansible-playbook playbook.yml --ask-vault-pass
 ```
 
-Generate `litellm_master_key`, `gateway_token`, and `backup_encryption_key` before the first run with `openssl rand -hex 32`; keep them stable across re-runs so auth tokens and encrypted backups remain valid.
+Generate `litellm_master_key`, `gateway_token`, and `backup_encryption_key` before the first run with `openssl rand -hex 32` (32 bytes = 64 hex characters). Run the command three separate times and paste each full 64-character output into its matching `vault.yml` field.
+
+Keep those three values stable across re-runs so auth tokens and encrypted backups remain valid.
 
 ### What Gets Deployed
 
