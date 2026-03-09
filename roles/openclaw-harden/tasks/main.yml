@@ -2,6 +2,24 @@
 # Step 5: Gateway and sandbox hardening
 # All config applied via docker exec — idempotent (config set is a no-op if value matches)
 
+# Discover proxy-net subnet if not already set (e.g., when running --tags harden standalone).
+# The deploy role sets this as a fact, but facts don't persist across separate playbook runs.
+- name: Discover proxy-net subnet (if not already set)
+  when: proxy_net_subnet is not defined
+  block:
+    - name: Get proxy-net subnet from Docker
+      ansible.builtin.command: >
+        docker network inspect openclaw_proxy-net
+        --format '{{ '{{' }}range .IPAM.Config{{ '}}' }}{{ '{{' }}.Subnet{{ '}}' }}{{ '{{' }}end{{ '}}' }}'
+      register: _proxy_subnet_discovery
+      changed_when: false
+      failed_when: false
+
+    - name: Store discovered proxy-net subnet
+      ansible.builtin.set_fact:
+        proxy_net_subnet: "{{ _proxy_subnet_discovery.stdout }}"
+      when: _proxy_subnet_discovery.rc == 0 and _proxy_subnet_discovery.stdout | length > 0
+
 - name: Back up OpenClaw config before hardening
   ansible.builtin.command: >
     docker exec openclaw

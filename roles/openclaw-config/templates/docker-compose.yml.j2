@@ -47,7 +47,7 @@ services:
       resources:
         limits:
           cpus: "{{ docker_proxy_cpus }}"
-          memory: {{ docker_proxy_memory }}
+          memory: "{{ docker_proxy_memory }}"
     restart: unless-stopped
 
   openclaw:
@@ -87,9 +87,9 @@ services:
       resources:
         limits:
           cpus: "{{ openclaw_cpus }}"
-          memory: {{ openclaw_memory }}
+          memory: "{{ openclaw_memory }}"
         reservations:
-          memory: {{ openclaw_memory_reservation }}
+          memory: "{{ openclaw_memory_reservation }}"
     restart: unless-stopped
 
   litellm:
@@ -130,7 +130,7 @@ services:
       resources:
         limits:
           cpus: "{{ litellm_cpus }}"
-          memory: {{ litellm_memory }}
+          memory: "{{ litellm_memory }}"
     restart: unless-stopped
 
   openclaw-egress:
@@ -168,7 +168,7 @@ services:
       resources:
         limits:
           cpus: "{{ smokescreen_cpus }}"
-          memory: {{ smokescreen_memory }}
+          memory: "{{ smokescreen_memory }}"
     restart: unless-stopped
 
   redis:
@@ -203,7 +203,7 @@ services:
       resources:
         limits:
           cpus: "{{ redis_cpus }}"
-          memory: {{ redis_memory }}
+          memory: "{{ redis_memory }}"
     restart: unless-stopped
 
 networks:
