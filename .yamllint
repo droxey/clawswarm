@@ -1,6 +1,10 @@
 ---
 extends: default
 
+ignore:
+  - prompts/references/
+  - prompts/assets/
+
 rules:
   line-length:
     max: 200
