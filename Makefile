@@ -1,4 +1,4 @@
-.PHONY: lint test role-tests deploy verify check caprover-check caprover-deploy caprover-verify help
+.PHONY: lint test role-tests deploy verify check caprover-check caprover-deploy caprover-verify scan help
 
 lint:                          ## Run all linters (yamllint + ansible-lint + syntax check)
 	yamllint . && ansible-lint && ansible-playbook playbook.yml --syntax-check && ansible-playbook caprover-playbook.yml --syntax-check
@@ -30,7 +30,10 @@ caprover-verify:               ## Verify CapRover swarm deployment
 caprover-check:                ## Lint + test CapRover monitoring config only
 	yamllint caprover-playbook.yml roles/monitoring/ && ansible-lint caprover-playbook.yml roles/monitoring/ && ansible-playbook caprover-playbook.yml --syntax-check && molecule test -s caprover && cd roles/monitoring && molecule test
 
-check: lint test               ## Run lint + test (full CI equivalent)
+scan:                          ## Scan for secret leaks (requires gitleaks)
+	gitleaks detect --source . -v
+
+check: lint test scan          ## Run lint + test + scan (full CI equivalent)
 
 help:                          ## Show this help
 	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | sort | \
