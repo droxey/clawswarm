@@ -6,12 +6,9 @@
       "Bash(make help:*)",
       "Bash(molecule test:*)",
       "Bash(python3:*)",
-<<<<<<< HEAD
-      "Bash(pip3 list:*)"
-=======
+      "Bash(pip3 list:*)",
       "Bash(pip3 list:*)",
       "Bash(git status:*)"
->>>>>>> 9375bb5 (Fix make check: missing molecule verify, gitleaks guard, vault lint ignore)
     ]
   },
   "outputStyle": "Explanatory"
