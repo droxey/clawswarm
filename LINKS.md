@@ -3,6 +3,7 @@
 ## Skills
 
 - [OpenClaw Skills List](https://raw.githubusercontent.com/VoltAgent/awesome-openclaw-skills/refs/heads/main/README.md)
+- [skill-eval — Unit Tests for AI Agent Skills](https://github.com/mgechev/skill-eval)
 - [Awesome Claw](https://raw.githubusercontent.com/sameeerkashyap/awesome-claw/refs/heads/main/README.md)
 - [Learning Skills](https://raw.githubusercontent.com/botlearn-ai/awesome-openclaw-learning-skills/refs/heads/main/README.md)
 
