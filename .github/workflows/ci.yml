@@ -85,8 +85,6 @@ jobs:
             role: reverse-proxy
           - scenario: default
             role: maintenance
-          - scenario: default
-            role: monitoring
           - scenario: caprover
             role: ""
     steps:

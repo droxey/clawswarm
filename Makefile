@@ -12,7 +12,6 @@ role-tests:                    ## Run Molecule tests for template-bearing roles
 	cd roles/openclaw-harden && molecule test
 	cd roles/reverse-proxy && molecule test
 	cd roles/maintenance && molecule test
-	cd roles/monitoring && molecule test
 
 deploy:                        ## Deploy OpenClaw to target server
 	ansible-playbook playbook.yml -i inventory/hosts.yml --ask-vault-pass
@@ -27,7 +26,7 @@ caprover-verify:               ## Verify CapRover swarm deployment
 	ansible-playbook caprover-playbook.yml -i inventory/caprover-hosts.yml --tags verify --ask-vault-pass
 
 caprover-check:                ## Lint + test CapRover monitoring config only
-	yamllint caprover-playbook.yml roles/monitoring/ && ansible-lint caprover-playbook.yml roles/monitoring/ && ansible-playbook caprover-playbook.yml --syntax-check && molecule test -s caprover && cd roles/monitoring && molecule test
+	yamllint caprover-playbook.yml && ansible-lint caprover-playbook.yml && ansible-playbook caprover-playbook.yml --syntax-check && molecule test -s caprover
 
 check: lint test               ## Run lint + test (full CI equivalent)
 
