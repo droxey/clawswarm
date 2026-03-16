@@ -5,6 +5,7 @@ ignore:
   - venv/
   - .claude/prompts/references/
   - .claude/prompts/assets/
+  - .claude/skills/**/node_modules/
   - group_vars/all/vault.yml
 
 rules:
