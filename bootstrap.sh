@@ -446,12 +446,30 @@ run_playbook() {
 
   cd "$INSTALL_DIR"
 
+  # Determine how to supply the Ansible vault password
+  local vault_args=()
+  if [[ -f "$VAULT_PASS_FILE" ]]; then
+    vault_args=(--vault-password-file "$VAULT_PASS_FILE")
+  else
+    info "Vault password file '$VAULT_PASS_FILE' not found."
+    read -r -p "Path to an existing Ansible vault password file (leave empty to have Ansible prompt for the password): " custom_vault_path
+    if [[ -n "${custom_vault_path:-}" ]]; then
+      if [[ ! -f "$custom_vault_path" ]]; then
+        err "Provided vault password file '$custom_vault_path' does not exist."
+        exit 1
+      fi
+      vault_args=(--vault-password-file "$custom_vault_path")
+    else
+      info "Proceeding without --vault-password-file; Ansible will prompt for the vault password if needed."
+    fi
+  fi
+
   info "Running Ansible playbook (this will take a while)..."
   info "Log: $LOG_FILE"
   printf '\n'
 
   ansible-playbook playbook.yml \
-    --vault-password-file "$VAULT_PASS_FILE" \
+    "${vault_args[@]}" \
     --skip-tags bootstrap \
     2>&1 | tee "$LOG_FILE"
 
