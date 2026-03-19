@@ -49,6 +49,7 @@
   retries: 36
   delay: 10
   changed_when: false
+  check_mode: false
   loop:
     - openclaw-docker-proxy
     - openclaw-egress
@@ -63,6 +64,7 @@
     --format '{{ '{{' }}range .IPAM.Config{{ '}}' }}{{ '{{' }}.Subnet{{ '}}' }}{{ '{{' }}end{{ '}}' }}'
   register: proxy_subnet_result
   changed_when: false
+  check_mode: false
 
 - name: Store proxy-net subnet as fact
   ansible.builtin.set_fact:
