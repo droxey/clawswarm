@@ -40,17 +40,20 @@
         ssh -o BatchMode=yes -o ConnectTimeout=5
         -o StrictHostKeyChecking=accept-new
         -o IdentitiesOnly=yes
-        {{ '-i ' + local_ssh_key_path if local_key_stat.stat.exists else '' }}
+        -i {{ local_ssh_key_path }}
         -p {{ ssh_port }} {{ deploy_user }}@{{ ansible_host }} echo ok
       delegate_to: localhost
       become: false
       ignore_errors: true
       register: deploy_ssh_check
       changed_when: false
+      when: local_key_stat.stat.exists
 
     - name: Skip bootstrap when deploy user is accessible
       ansible.builtin.meta: end_play
-      when: deploy_ssh_check.rc == 0
+      when:
+        - deploy_ssh_check is not skipped
+        - deploy_ssh_check.rc == 0
 
     # ── Phase 2: Find a port where root can connect ─────────────────────
     - name: Check configured SSH port ({{ ssh_port }})
@@ -90,10 +93,12 @@
     # Propagate the resolved port so the main play connects on the right port.
     # Without this, the main play uses ansible_port from inventory (ssh_port),
     # but on a fresh server SSH is still on 22 until the base role moves it.
-    - name: Propagate resolved SSH port to main play
+    - name: Propagate resolved SSH port and user to main play
       ansible.builtin.add_host:
         name: openclaw
         ansible_port: "{{ ansible_port }}"
+        ansible_user: "{{ deploy_user }}"
+        ansible_ssh_private_key_file: "{{ local_ssh_key_path }}"
       changed_when: false
 
     # ── Phase 3: Provision deploy user via root ─────────────────────────
