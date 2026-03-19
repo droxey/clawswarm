@@ -165,9 +165,8 @@ install_deps() {
     info "Ansible already installed: $(ansible --version | head -1)"
   else
     info "Installing Ansible via pipx..."
-    PIPX_HOME=/opt/pipx PIPX_BIN_DIR=/usr/local/bin \
-      pipx install --include-deps ansible 2>&1 | tail -1
-    if ! command -v ansible &>/dev/null; then
+    if ! PIPX_HOME=/opt/pipx PIPX_BIN_DIR=/usr/local/bin \
+      pipx install --include-deps ansible >>"$LOG_FILE" 2>&1; then
       warn "pipx install failed — falling back to apt..."
       apt-get install -y -qq ansible > /dev/null 2>&1
     fi
