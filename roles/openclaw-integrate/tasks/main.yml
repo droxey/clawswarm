@@ -7,12 +7,14 @@
     docker exec openclaw openclaw config set agents.defaults.apiBase
     "http://openclaw-litellm:4000"
   changed_when: false
+  check_mode: false
 
 - name: Set default model
   ansible.builtin.command: >
     docker exec openclaw openclaw config set agents.defaults.model
     "{{ openclaw_default_model }}"
   changed_when: false
+  check_mode: false
 
 # block/always ensures the host tempfile is removed even if docker cp or
 # container exec fails — prevents key material from sitting on disk.
@@ -30,6 +32,7 @@
     - name: Copy Voyage API key into container
       ansible.builtin.command: docker cp {{ openclaw_base_dir }}/monitoring/.voyage-env openclaw:/tmp/.voyage-env
       changed_when: false
+      check_mode: false
       no_log: true
 
     - name: Install Voyage API key into container .env
@@ -37,6 +40,7 @@
         docker exec openclaw sh -c
         'cat /tmp/.voyage-env > /root/.openclaw/.env && chmod 600 /root/.openclaw/.env && rm -f /tmp/.voyage-env'
       changed_when: false
+      check_mode: false
       no_log: true
 
   always:
@@ -67,6 +71,7 @@
     - name: Copy Telegram token into container
       ansible.builtin.command: docker cp "{{ telegram_token_file.path }}" openclaw:/tmp/.tg-token
       changed_when: false
+      check_mode: false
       no_log: true
 
     - name: Install Telegram token via file
@@ -74,12 +79,14 @@
         docker exec openclaw sh -c
         'openclaw config set channels.telegram.token "$(cat /tmp/.tg-token)" && rm -f /tmp/.tg-token'
       changed_when: false
+      check_mode: false
       no_log: true
 
     - name: Configure Telegram streaming (fixed in 2026.2.19+)
       ansible.builtin.command: >
         docker exec openclaw openclaw config set channels.telegram.streaming "progress"
       changed_when: false
+      check_mode: false
 
   always:
     - name: Remove Telegram bot token tempfile
@@ -94,16 +101,19 @@
   ansible.builtin.command: >
     docker exec openclaw openclaw config set memory.provider "{{ memory_provider }}"
   changed_when: false
+  check_mode: false
 
 - name: Configure memory model
   ansible.builtin.command: >
     docker exec openclaw openclaw config set memory.voyage.model "{{ memory_model }}"
   changed_when: false
+  check_mode: false
 
 - name: Build memory index
   ansible.builtin.command: docker exec openclaw openclaw memory index
   register: memory_index
   changed_when: false
+  check_mode: false
   failed_when: false
 
 - name: Show memory index build output on failure
@@ -118,6 +128,7 @@
   ansible.builtin.command: docker exec openclaw openclaw memory index --verify
   register: memory_verify
   changed_when: false
+  check_mode: false
   failed_when: false
 
 - name: Show memory index status
@@ -149,9 +160,10 @@
 - name: Wait for OpenClaw to become healthy after integration restart
   ansible.builtin.command: >
     docker inspect openclaw
-    --format '{{ '{{' }}if .State.Health{{ '}}' }}{{ '{{' }}.State.Health.Status{{ '}}' }}{{ '{{' }}else{{ '}}' }}running{{ '{{' }}end{{ '}}' }}'
+    --format '{{ docker_health_format }}'
   register: integrate_health_check
   until: integrate_health_check.stdout in ['healthy', 'running']
   retries: 18
   delay: 10
   changed_when: false
+  check_mode: false

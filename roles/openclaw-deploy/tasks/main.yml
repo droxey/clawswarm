@@ -43,12 +43,13 @@
 - name: Wait for all containers to become healthy
   ansible.builtin.command: >
     docker inspect {{ item }}
-    --format '{{ '{{' }}if .State.Health{{ '}}' }}{{ '{{' }}.State.Health.Status{{ '}}' }}{{ '{{' }}else{{ '}}' }}running{{ '{{' }}end{{ '}}' }}'
+    --format '{{ docker_health_format }}'
   register: health_check
   until: health_check.stdout in ['healthy', 'running']
   retries: 36
   delay: 10
   changed_when: false
+  check_mode: false
   loop:
     - openclaw-docker-proxy
     - openclaw-egress
@@ -63,6 +64,7 @@
     --format '{{ '{{' }}range .IPAM.Config{{ '}}' }}{{ '{{' }}.Subnet{{ '}}' }}{{ '{{' }}end{{ '}}' }}'
   register: proxy_subnet_result
   changed_when: false
+  check_mode: false
 
 - name: Store proxy-net subnet as fact
   ansible.builtin.set_fact:

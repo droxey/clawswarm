@@ -8,6 +8,7 @@
   ansible.builtin.command: docker inspect --format '{{ '{{' }}.State.Running{{ '}}' }}' openclaw
   register: openclaw_running
   changed_when: false
+  check_mode: false
   failed_when: openclaw_running.stdout != 'true'
 
 - name: Create agency-agents staging directory on host
@@ -51,6 +52,7 @@
 - name: Create agents directory inside container
   ansible.builtin.command: docker exec openclaw mkdir -p /root/.openclaw/agents
   changed_when: false
+  check_mode: false
 
 - name: Copy agent divisions into container
   ansible.builtin.command: >
@@ -59,6 +61,7 @@
     openclaw:/root/.openclaw/agents/{{ item }}
   loop: "{{ agency_agents_divisions }}"
   changed_when: false
+  check_mode: false
 
 - name: Set permissions on agents directory inside container
   ansible.builtin.command: "docker exec openclaw {{ item }}"
@@ -66,11 +69,13 @@
     - chmod -R 700 /root/.openclaw/agents
     - sh -c 'find /root/.openclaw/agents -type f -exec chmod 600 {} \;'
   changed_when: false
+  check_mode: false
 
 - name: List deployed agent files
   ansible.builtin.command: docker exec openclaw find /root/.openclaw/agents -name '*.md' -type f
   register: deployed_agents
   changed_when: false
+  check_mode: false
 
 - name: Show deployed agent count
   ansible.builtin.debug:
@@ -112,6 +117,7 @@
   loop_control:
     label: "{{ item.name }}"
   changed_when: false
+  check_mode: false
   when: vendor_skills_enabled | default(false) | bool
 
 - name: Copy vendor skills into container
@@ -125,6 +131,7 @@
   loop_control:
     label: "{{ item.name }}"
   changed_when: false
+  check_mode: false
   when: vendor_skills_enabled | default(false) | bool
 
 - name: Set permissions on vendor skills inside container
@@ -133,6 +140,7 @@
     - chmod -R 700 /root/.openclaw/agents/vendor
     - sh -c 'find /root/.openclaw/agents/vendor -type f -exec chmod 600 {} \;'
   changed_when: false
+  check_mode: false
   when: vendor_skills_enabled | default(false) | bool
 
 - name: List deployed vendor skill files
@@ -140,6 +148,7 @@
     docker exec openclaw find /root/.openclaw/agents/vendor -name '*.md' -type f
   register: deployed_vendor_skills
   changed_when: false
+  check_mode: false
   when: vendor_skills_enabled | default(false) | bool
 
 - name: Show deployed vendor skill count

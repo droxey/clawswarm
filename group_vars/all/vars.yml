@@ -4,6 +4,9 @@ deploy_user: deploy
 ssh_port: 9922
 admin_ip: "YOUR_STATIC_IP"
 openclaw_base_dir: /opt/openclaw
+# Go template format string for docker inspect health checks.
+# !unsafe prevents Ansible from interpreting the {{ }} as Jinja2.
+docker_health_format: !unsafe "{{if .State.Health}}{{.State.Health.Status}}{{else}}running{{end}}"
 domain: "openclaw.yourdomain.com"
 
 # SSH key for Ansible → server auth (auto-generated on first run if missing).
@@ -34,6 +37,12 @@ cloudflared_version: "2026.2.0"
 docker_ce_version: "5:27.5.1-1~ubuntu.24.04~noble"
 # To find: apt-cache policy tailscale (after adding the APT repo)
 tailscale_version: "1.78.1"
+# To find versions: apt-cache policy containerd.io (etc.) — after adding Docker APT repo.
+# These must be compatible with docker_ce_version above. Check Docker release notes
+# when updating: https://docs.docker.com/engine/release-notes/
+containerd_version: "1.7.27-1"
+docker_buildx_version: "0.21.2-1~ubuntu.24.04~noble"
+docker_compose_plugin_version: "2.32.4-1~ubuntu.24.04~noble"
 
 # ── Docker Daemon ─────────────────────────────────────────────────────
 docker_log_max_size: "10m"
@@ -84,6 +93,11 @@ litellm_models:
 litellm_cache_ttl: 3600
 litellm_similarity_threshold: 0.8
 redis_maxmemory: "256mb"
+# Optional Redis password for defense-in-depth. When empty (default),
+# Redis runs without authentication (current behavior, safe because
+# openclaw-net is internal). Set a value in vault.yml to enable AUTH.
+# Generate with: openssl rand -hex 32
+redis_password: ""
 
 # ── OpenClaw Hardening ────────────────────────────────────────────────
 openclaw_default_model: "anthropic/claude-opus-4-6"
