@@ -99,9 +99,9 @@
     name:
       - "docker-ce={{ docker_ce_version }}"
       - "docker-ce-cli={{ docker_ce_version }}"
-      - containerd.io
-      - docker-buildx-plugin
-      - docker-compose-plugin
+      - "containerd.io={{ containerd_version }}"
+      - "docker-buildx-plugin={{ docker_buildx_version }}"
+      - "docker-compose-plugin={{ docker_compose_plugin_version }}"
     state: present
     update_cache: true
 

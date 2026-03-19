@@ -34,6 +34,12 @@ cloudflared_version: "2026.2.0"
 docker_ce_version: "5:27.5.1-1~ubuntu.24.04~noble"
 # To find: apt-cache policy tailscale (after adding the APT repo)
 tailscale_version: "1.78.1"
+# To find versions: apt-cache policy containerd.io (etc.) — after adding Docker APT repo.
+# These must be compatible with docker_ce_version above. Check Docker release notes
+# when updating: https://docs.docker.com/engine/release-notes/
+containerd_version: "1.7.27-1"
+docker_buildx_version: "0.21.2-1~ubuntu.24.04~noble"
+docker_compose_plugin_version: "2.32.4-1~ubuntu.24.04~noble"
 
 # ── Docker Daemon ─────────────────────────────────────────────────────
 docker_log_max_size: "10m"
