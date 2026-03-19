@@ -16,3 +16,4 @@ venv/
 .claude/settings.local.json
 .vault-pass
 group_vars/all/zzz_bootstrap.yml
+.lock
