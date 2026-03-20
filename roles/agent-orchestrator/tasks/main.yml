@@ -42,9 +42,9 @@
         filename: nodesource
         state: present
 
-- name: Install Node.js (pinned to major version)
+- name: Install Node.js (pinned to patch version)
   ansible.builtin.apt:
-    name: "nodejs={{ agent_orchestrator_node_version }}.*"
+    name: "nodejs={{ agent_orchestrator_node_package_version }}"
     state: present
     update_cache: true
 

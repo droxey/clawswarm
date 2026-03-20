@@ -10,6 +10,9 @@ skip_list:
   - var-naming[no-role-prefix]
   # Role names use hyphens by convention in this project (e.g. openclaw-config)
   - role-name
+  # Molecule converge playbooks use ../../templates/ relative paths by design —
+  # they run from the role directory and must reference the role's own templates
+  - no-relative-paths
 
 # Warn-only for rules that conflict with this playbook's docker exec pattern
 warn_list:
@@ -20,7 +23,6 @@ warn_list:
 exclude_paths:
   - .github/
   - .claude/
-  - molecule/
   - group_vars/all/vault.yml
 
 # Treat warnings as errors in CI

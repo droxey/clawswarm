@@ -55,6 +55,9 @@
     redis_cpus: "0.5"
     redis_memory: "512M"
 
+    # Uploads directory
+    uploads_dir: "{{ openclaw_base_dir }}/uploads"
+
     # Extra env vars
     openclaw_extra_env:
       BASE_RPC_URL: "https://mainnet.base.org"

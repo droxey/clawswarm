@@ -1,6 +1,8 @@
 {{ domain }} {
     # Security headers (OWASP recommendations)
     header {
+        Strict-Transport-Security "max-age=63072000; includeSubDomains; preload"
+        Content-Security-Policy "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; connect-src 'self'; frame-ancestors 'none'"
         X-Content-Type-Options "nosniff"
         X-Frame-Options "DENY"
         Referrer-Policy "strict-origin-when-cross-origin"

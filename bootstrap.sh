@@ -199,6 +199,10 @@ CONFIG_FILE=""
 NON_INTERACTIVE=false
 
 # Config variables (populated from flags/config/env/prompts)
+# Precedence: CLI flags > config file > env vars > CLINCHER_* env vars > prompts
+# Both unprefixed (ANTHROPIC_API_KEY) and prefixed (CLINCHER_ANTHROPIC_KEY) env
+# vars are supported. Unprefixed takes priority — careful if your shell already
+# exports ANTHROPIC_API_KEY for other tools.
 ANTHROPIC_API_KEY="${ANTHROPIC_API_KEY:-}"
 VOYAGE_API_KEY="${VOYAGE_API_KEY:-}"
 DOMAIN="${DOMAIN:-}"

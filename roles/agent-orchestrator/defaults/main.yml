@@ -27,5 +27,11 @@ agent_orchestrator_notifier: "desktop"
 agent_orchestrator_max_concurrent: 5
 agent_orchestrator_auto_merge: false
 
-# Node.js major version (installed via NodeSource APT repo).
+# Node.js version (installed via NodeSource APT repo).
+# Pin to exact patch for reproducibility — find latest with:
+#   apt-cache madison nodejs | grep nodesource
 agent_orchestrator_node_version: "20"
+agent_orchestrator_node_package_version: "20.18.3-1nodesource1"
+
+# pnpm version (activated via corepack).
+agent_orchestrator_pnpm_version: "10.6.5"
