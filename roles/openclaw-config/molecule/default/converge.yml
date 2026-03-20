@@ -1,29 +1,23 @@
 ---
 # Converge playbook for openclaw-config role
-# Renders all templates to a temporary directory without requiring Docker.
-- name: Test openclaw-config role template rendering
+# Renders all templates to a temp directory without requiring Docker or handlers.
+- name: Test openclaw-config template rendering
   hosts: localhost
   connection: local
   gather_facts: true
   become: false
 
   vars:
-    # Use a temp directory so we don't need root or /opt
     openclaw_base_dir: /tmp/molecule-openclaw-config
 
     # Image versions
-    openclaw_version: "2026.2.23"
+    openclaw_version: "2026.3.13"
     docker_proxy_version: "v0.4.2"
-    smokescreen_commit: "v0.0.4"
-    smokescreen_go_version: "1.22"
-    smokescreen_alpine_version: "3.20"
+    smokescreen_commit: "1dca4519091993661e52ab18b370b2024078f75a"
+    smokescreen_go_version: "1.22.12"
+    smokescreen_alpine_version: "3.20.6"
     litellm_version: "main-v1.81.3-stable"
     redis_version: "7.4.0-v3"
-
-    # Secrets (test values)
-    litellm_master_key: "test-fixture-litellm-key-000000000000000000000000000000000000000"
-    anthropic_api_key: "sk-ant-test-key-for-molecule"
-    voyage_api_key: "pa-test-key-for-molecule"
 
     # Egress whitelist
     egress_allowed_domains:
@@ -31,7 +25,24 @@
       - "*.openai.com"
       - "*.voyageai.com"
 
-    # Container resources
+    # LiteLLM
+    litellm_master_key: "test-litellm-master-key-0000000000000000"
+    litellm_models:
+      - name: "anthropic/claude-opus-4-6"
+        model: "claude-opus-4-6"
+        key_env: "ANTHROPIC_API_KEY"
+        max_budget: 100.0
+        rpm: 60
+    litellm_cache_ttl: 3600
+    litellm_similarity_threshold: 0.8
+    redis_maxmemory: "256mb"
+    redis_password: ""
+
+    # Secrets
+    anthropic_api_key: "sk-ant-test-key-000000000000"
+    voyage_api_key: "pa-test-key-000000000000"
+
+    # Container resource limits
     openclaw_cpus: "8.0"
     openclaw_memory: "16G"
     openclaw_memory_reservation: "4G"
@@ -43,41 +54,14 @@
     litellm_memory: "2G"
     redis_cpus: "0.5"
     redis_memory: "512M"
-    redis_maxmemory: "256mb"
 
-    # LiteLLM models
-    litellm_models:
-      - name: "anthropic/claude-opus-4-6"
-        model: "claude-opus-4-6"
-        key_env: "ANTHROPIC_API_KEY"
-        max_budget: 100.0
-        rpm: 60
-
-    litellm_cache_ttl: 3600
-    litellm_similarity_threshold: 0.8
-
-    # Docker socket proxy
-    docker_dns:
-      - "1.1.1.1"
-      - "8.8.8.8"
-
-    # OpenClaw hardening
-    openclaw_agent_tool_denials:
-      - process
-      - browser
-    openclaw_gateway_tool_denials:
-      - process
-      - browser
+    # Extra env vars
     openclaw_extra_env:
       BASE_RPC_URL: "https://mainnet.base.org"
       CONWAY_API_KEY: "conway-test-key"
 
-    domain: "test.example.com"
-    reverse_proxy: "caddy"
-    uploads_dir: /tmp/molecule-openclaw-config/uploads
-
   tasks:
-    - name: Create OpenClaw directory tree
+    - name: Create test directory tree
       ansible.builtin.file:
         path: "{{ item }}"
         state: directory
@@ -90,16 +74,16 @@
         - "{{ openclaw_base_dir }}/monitoring/logs"
         - "{{ openclaw_base_dir }}/monitoring/backups"
 
-    - name: Deploy Smokescreen custom main.go
-      ansible.builtin.copy:
-        src: "{{ playbook_dir }}/../../files/main.smokescreen.go"
-        dest: "{{ openclaw_base_dir }}/build/smokescreen/main.go"
-        mode: "0644"
-
     - name: Deploy Smokescreen Dockerfile
       ansible.builtin.template:
         src: "{{ playbook_dir }}/../../templates/Dockerfile.smokescreen.j2"
         dest: "{{ openclaw_base_dir }}/build/smokescreen/Dockerfile"
+        mode: "0644"
+
+    - name: Copy Smokescreen custom main.go
+      ansible.builtin.copy:
+        src: "{{ playbook_dir }}/../../files/main.smokescreen.go"
+        dest: "{{ openclaw_base_dir }}/build/smokescreen/main.go"
         mode: "0644"
 
     - name: Deploy Smokescreen egress ACL

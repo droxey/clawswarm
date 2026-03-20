@@ -1,41 +1,26 @@
 ---
 # Converge playbook for maintenance role
-# Renders maintenance scripts to a temp directory without requiring root/Docker.
-- name: Test maintenance role template rendering
+# Renders all maintenance templates to a temp directory without requiring Docker or cron.
+- name: Test maintenance template rendering
   hosts: localhost
   connection: local
-  gather_facts: true
+  gather_facts: false
   become: false
 
   vars:
     openclaw_base_dir: /tmp/molecule-maintenance
-
-    # Secrets (test values)
-    backup_encryption_key: "test-fixture-backup-encryption-key-00000000000000000000000000000"
-    gateway_token: "test-fixture-gateway-token-0000000000000000000000000000000000000"
-    litellm_master_key: "test-fixture-litellm-key-000000000000000000000000000000000000000"
-
-    # Maintenance config
+    backup_encryption_key: "test-encryption-key-0000000000000000"
     backup_retention_days: 14
     log_retention_days: 30
-    backup_cron_hour: 3
-    backup_cron_minute: 0
-    token_rotation_day: 1
-    token_rotation_hour: 4
-    watchdog_interval: 5
     watchdog_restart_threshold: 3
     watchdog_disk_threshold: 85
     watchdog_memory_threshold: 90
-
-    # Unattended upgrades
     auto_reboot: true
     auto_reboot_time: "05:00"
-
-    # Domain
-    domain: "test.example.com"
+    docker_health_format: !unsafe "{{if .State.Health}}{{.State.Health.Status}}{{else}}running{{end}}"
 
   tasks:
-    - name: Create directory tree
+    - name: Create test directory tree
       ansible.builtin.file:
         path: "{{ item }}"
         state: directory
@@ -43,8 +28,6 @@
       loop:
         - "{{ openclaw_base_dir }}"
         - "{{ openclaw_base_dir }}/monitoring"
-        - "{{ openclaw_base_dir }}/monitoring/logs"
-        - "{{ openclaw_base_dir }}/monitoring/backups"
 
     - name: Deploy backup encryption key
       ansible.builtin.copy:
@@ -77,13 +60,19 @@
         dest: "{{ openclaw_base_dir }}/monitoring/verify-backup.sh"
         mode: "0700"
 
+    - name: Deploy logrotate config
+      ansible.builtin.template:
+        src: "{{ playbook_dir }}/../../templates/logrotate-openclaw.j2"
+        dest: "{{ openclaw_base_dir }}/monitoring/logrotate-openclaw"
+        mode: "0644"
+
     - name: Deploy unattended-upgrades config
       ansible.builtin.template:
         src: "{{ playbook_dir }}/../../templates/50unattended-upgrades.j2"
         dest: "{{ openclaw_base_dir }}/monitoring/50unattended-upgrades"
         mode: "0644"
 
-    - name: Deploy auto-upgrades config
+    - name: Deploy auto-upgrades schedule
       ansible.builtin.template:
         src: "{{ playbook_dir }}/../../templates/20auto-upgrades.j2"
         dest: "{{ openclaw_base_dir }}/monitoring/20auto-upgrades"

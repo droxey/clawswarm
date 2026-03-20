@@ -1,26 +1,22 @@
 ---
 # Converge playbook for reverse-proxy role
-# Renders all templates to a temp directory without requiring Docker or networking.
-- name: Test reverse-proxy role template rendering
+# Renders all proxy templates to a temp directory without requiring Docker.
+- name: Test reverse-proxy template rendering
   hosts: localhost
   connection: local
-  gather_facts: true
+  gather_facts: false
   become: false
 
   vars:
     openclaw_base_dir: /tmp/molecule-reverse-proxy
-
-    # Domain and proxy selection
     domain: "test.example.com"
+    caddy_version: "2.8.4-alpine"
+    cloudflared_version: "2026.2.0"
     monitoring_enabled: false
     filebrowser_enabled: false
 
-    # Image versions
-    caddy_version: "2.8.4-alpine"
-    cloudflared_version: "2026.2.0"
-
   tasks:
-    - name: Create reverse-proxy directory
+    - name: Create test directory
       ansible.builtin.file:
         path: "{{ openclaw_base_dir }}"
         state: directory
@@ -32,13 +28,13 @@
         dest: "{{ openclaw_base_dir }}/Caddyfile"
         mode: "0644"
 
-    - name: Deploy Caddy Compose file
+    - name: Deploy Caddy compose overlay
       ansible.builtin.template:
         src: "{{ playbook_dir }}/../../templates/compose.caddy.yml.j2"
         dest: "{{ openclaw_base_dir }}/compose.caddy.yml"
         mode: "0644"
 
-    - name: Deploy Tunnel Compose file
+    - name: Deploy Tunnel compose overlay
       ansible.builtin.template:
         src: "{{ playbook_dir }}/../../templates/compose.tunnel.yml.j2"
         dest: "{{ openclaw_base_dir }}/compose.tunnel.yml"

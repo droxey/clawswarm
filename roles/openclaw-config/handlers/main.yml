@@ -1,4 +1,7 @@
 ---
+# Uses `docker compose build` (command) instead of community.docker.docker_image_build
+# because the image is defined via compose build context — the module doesn't support
+# compose-file-defined build args, Dockerfile paths, or multi-stage context.
 - name: Rebuild egress
   ansible.builtin.command: docker compose build --no-cache openclaw-egress
   args:

@@ -1,6 +1,14 @@
 ---
 # Step 5: Gateway and sandbox hardening
-# All config applied via docker exec — idempotent (config set is a no-op if value matches)
+# All config applied via docker exec — idempotent (config set is a no-op if value matches).
+#
+# Design decision: changed_when: false on all `openclaw config set` tasks.
+# The OpenClaw CLI's config set is idempotent — it writes the value regardless of
+# current state and returns rc=0 either way, with no "changed" vs "unchanged" output.
+# Ansible therefore cannot detect real changes, so we suppress false positives.
+# This means --diff output is uninformative for these tasks, but correctness is
+# guaranteed by the CLI's own idempotency. check_mode: false ensures verification
+# tasks (docker inspect, config get) still run during --check dry runs.
 
 # Discover proxy-net subnet if not already set (e.g., when running --tags harden standalone).
 # The deploy role sets this as a fact, but facts don't persist across separate playbook runs.
