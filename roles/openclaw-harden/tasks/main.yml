@@ -222,6 +222,17 @@
   changed_when: false
   check_mode: false
 
+- name: Wait for openclaw to be healthy before sandbox config
+  ansible.builtin.shell: >
+    docker inspect openclaw
+    --format '{{ docker_health_format }}'
+  register: _oc_pre_sandbox
+  until: _oc_pre_sandbox.stdout == "healthy"
+  retries: 24
+  delay: 5
+  changed_when: false
+  check_mode: false
+
 - name: Apply sandbox isolation config
   ansible.builtin.command: "docker exec openclaw openclaw config set {{ item.key }} {{ item.value }}"
   loop:

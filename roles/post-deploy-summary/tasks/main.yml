@@ -19,9 +19,9 @@
   changed_when: false
   check_mode: false
 
-- name: Check agent orchestrator project list
-  ansible.builtin.command: ao list
-  register: _ao_projects
+- name: Check agent orchestrator status
+  ansible.builtin.command: ao status
+  register: _ao_status
   changed_when: false
   failed_when: false
   check_mode: false
@@ -64,14 +64,14 @@
     _step: "Fix NTP sync — timedatectl status shows not synchronized (clock drift breaks TLS)"
   when: _ntp_status.stdout | default('yes') != 'yes'
 
-- name: Add agent orchestrator init step
+- name: Add agent orchestrator project step
   ansible.builtin.set_fact:
     _next_steps: "{{ _next_steps + [_step] }}"
   vars:
-    _step: "Initialize agent orchestrator projects: ao init --auto"
+    _step: "Add a project to agent orchestrator: ao start <github-url-or-path>"
   when:
     - agent_orchestrator_enabled | default(false) | bool
-    - _ao_projects.stdout | default('') | length == 0 or _ao_projects.rc | default(0) != 0
+    - _ao_status.rc | default(0) != 0 or _ao_status.stdout | default('') | length == 0
 
 - name: Add smoke test step
   ansible.builtin.set_fact:
