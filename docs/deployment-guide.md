@@ -743,6 +743,7 @@ services:
       NODE_OPTIONS: "--dns-result-order=ipv4first"
     volumes:
       - openclaw-data:/root/.openclaw
+      - /usr/bin/docker:/usr/bin/docker:ro
     networks:
       - openclaw-net
       - proxy-net
@@ -2373,7 +2374,8 @@ Default credentials are `admin` / `admin` — change the password on first login
 
 | Symptom | Diagnostic | Fix |
 |---------|-----------|-----|
-| Sandbox fails | `docker logs openclaw-docker-proxy` | Verify EXEC=1, check socket proxy is reachable on `openclaw-net` |
+| Sandbox fails: `docker command was not found in PATH` | `docker exec openclaw which docker` | Add `- /usr/bin/docker:/usr/bin/docker:ro` to openclaw volumes in `docker-compose.yml`, then `docker compose up -d openclaw` |
+| Sandbox fails: socket proxy errors | `docker logs openclaw-docker-proxy` | Verify EXEC=1, check socket proxy is reachable on `openclaw-net` |
 | Gateway unreachable | `docker compose logs openclaw` | Confirm `gateway.bind "lan"`, check `trustedProxies` includes `proxy-net` subnet |
 | Gateway auth rejected | `docker exec openclaw openclaw config get gateway.auth.mode` | Re-run Step 5 auth section; verify `Authorization: Bearer <token>` header |
 | Agents can't reach LLM APIs | `docker exec openclaw wget -qO- http://openclaw-litellm:4000/health/liveliness` | Verify LiteLLM is healthy, check `agents.defaults.apiBase` points to `http://openclaw-litellm:4000`, check `ANTHROPIC_API_KEY` in `/opt/openclaw/.env` |
