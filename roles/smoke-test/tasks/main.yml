@@ -20,6 +20,17 @@
     owner: root
   no_log: true
 
+- name: Write Telegram bot token to secure tempfile
+  ansible.builtin.copy:
+    content: "{{ telegram_bot_token }}"
+    dest: /tmp/.smoke-test-tg-key
+    mode: "0600"
+    owner: root
+  no_log: true
+  when:
+    - telegram_enabled | default(false) | bool
+    - telegram_bot_token is defined
+
 - name: Build comma-separated model list
   ansible.builtin.set_fact:
     smoke_test_model_list: "{{ litellm_models | map(attribute='name') | join(',') }}"
@@ -30,13 +41,20 @@
     dest: /tmp/smoke-test-models.sh
     mode: "0700"
 
-- name: Run smoke test against all models
-  ansible.builtin.command: >
-    /tmp/smoke-test-models.sh
-    --key-file /tmp/.smoke-test-key
-    --models "{{ smoke_test_model_list }}"
-    --max-tokens {{ smoke_test_max_tokens | default(15) }}
-    --timeout {{ smoke_test_timeout | default(30) }}
+- name: Build smoke test command
+  ansible.builtin.set_fact:
+    smoke_test_cmd: >-
+      /tmp/smoke-test-models.sh
+      --key-file /tmp/.smoke-test-key
+      --models "{{ smoke_test_model_list }}"
+      --max-tokens {{ smoke_test_max_tokens | default(15) }}
+      --timeout {{ smoke_test_timeout | default(30) }}
+      {% if telegram_enabled | default(false) | bool and telegram_bot_token is defined %}
+      --telegram-key-file /tmp/.smoke-test-tg-key
+      {% endif %}
+
+- name: Run smoke test against all models and integrations
+  ansible.builtin.command: "{{ smoke_test_cmd }}"
   register: smoke_result
   changed_when: false
   check_mode: false
@@ -52,6 +70,7 @@
     state: absent
   loop:
     - /tmp/.smoke-test-key
+    - /tmp/.smoke-test-tg-key
     - /tmp/smoke-test-models.sh
 
 - name: Fail if any model tests failed

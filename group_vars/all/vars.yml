@@ -71,6 +71,7 @@ egress_extra_domains:
   - "*.groq.com"
   - "*.googleapis.com"
   - "*.x.ai"
+  - "*.telegram.org"
 
 # ── LiteLLM ──────────────────────────────────────────────────────────
 litellm_models:
