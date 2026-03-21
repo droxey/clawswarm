@@ -55,6 +55,9 @@
     redis_cpus: "0.5"
     redis_memory: "512M"
 
+    # System
+    timezone: "UTC"
+
     # Uploads directory
     uploads_dir: "{{ openclaw_base_dir }}/uploads"
 
