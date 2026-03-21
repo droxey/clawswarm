@@ -5,6 +5,15 @@
 # agents.defaults.apiBase removed — not supported in this OpenClaw version
 # LiteLLM proxy is configured via container environment variables instead
 
+- name: Register LiteLLM models with gateway
+  ansible.builtin.command: >
+    docker exec openclaw openclaw models set "{{ item.name }}"
+  loop: "{{ litellm_models }}"
+  loop_control:
+    label: "{{ item.name }}"
+  changed_when: false
+  check_mode: false
+
 - name: Set default model
   ansible.builtin.command: >
     docker exec openclaw openclaw config set agents.defaults.model
@@ -27,9 +36,19 @@
   register: telegram_env_check
   when: telegram_enabled | bool
 
+- name: Register Telegram channel with gateway
+  ansible.builtin.command: >
+    docker exec openclaw openclaw channels add
+    --channel telegram --use-env
+  changed_when: false
+  check_mode: false
+  when:
+    - telegram_enabled | bool
+    - telegram_env_check.rc == 0
+
 - name: Show Telegram config status
   ansible.builtin.debug:
-    msg: "{{ 'Telegram bot token is configured via environment' if telegram_env_check.rc == 0 else 'WARNING: TELEGRAM_BOT_TOKEN not found in container environment — add it to .env and restart' }}"
+    msg: "{{ 'Telegram channel registered via environment' if telegram_env_check.rc == 0 else 'WARNING: TELEGRAM_BOT_TOKEN not found in container environment — add it to .env and restart' }}"
   when: telegram_enabled | bool
 
 # ── Step 8: Memory and RAG Configuration ─────────────────────────────

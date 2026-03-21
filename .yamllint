@@ -7,6 +7,7 @@ ignore:
   - .claude/prompts/assets/
   - .claude/skills/**/node_modules/
   - group_vars/all/vault.yml
+  - group_vars/caprover/vault.yml
 
 rules:
   line-length:
