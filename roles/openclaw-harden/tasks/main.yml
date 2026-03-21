@@ -121,6 +121,15 @@
       changed_when: false
       check_mode: false
 
+    - name: Apply gateway auth rate limiting
+      ansible.builtin.command: "docker exec openclaw openclaw config set {{ item.key }} {{ item.value }}"
+      loop:
+        - { key: 'gateway.auth.rateLimit.maxAttempts', value: '10' }
+        - { key: 'gateway.auth.rateLimit.windowMs', value: '60000' }
+        - { key: 'gateway.auth.rateLimit.lockoutMs', value: '300000' }
+      changed_when: false
+      check_mode: false
+
   always:
     - name: Remove gateway token file from container
       ansible.builtin.command: docker exec openclaw rm -f /tmp/.gw-token
@@ -261,8 +270,14 @@
         state: absent
 
 # ── File Permissions ──────────────────────────────────────────────────
-# File permission lockdown skipped — cap_drop=ALL prevents chmod/chown
-# inside the container, and the security context already restricts access.
+# cap_drop=ALL prevents chown, but chmod on owned files works without
+# capabilities. Restrict log file to owner-only to prevent message leaks.
+- name: Restrict log file permissions
+  ansible.builtin.command: >
+    docker exec openclaw chmod 600 /home/node/.openclaw/logs/openclaw.log
+  changed_when: false
+  failed_when: false
+  check_mode: false
 
 # ── Verify and Fix ────────────────────────────────────────────────────
 - name: Run security audit with auto-fix
