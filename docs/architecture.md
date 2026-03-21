@@ -67,12 +67,10 @@ Three bridge networks enforce least-privilege communication. `openclaw-net` is *
 
 ## Networks
 
-Three bridge networks enforce least-privilege communication between services:
-
-- **`openclaw-net`**: Internal bridge — no internet access. Core services live here. Configured with `internal: true` to prevent any direct internet connectivity.
-- **`egress-net`**: Bridges the egress proxy to the internet for whitelisted LLM API calls only. Only the Smokescreen proxy and external LLM endpoints communicate over this network.
-- **`proxy-net`**: Connects the reverse proxy (Caddy/Nginx) to the OpenClaw gateway. This is the only path for inbound HTTPS traffic to reach the application.
+- **`openclaw-net`**: Internal bridge — no internet access. Core services live here. `internal: true` prevents any direct internet connectivity.
+- **`egress-net`**: Bridges the egress proxy to the internet for whitelisted LLM API calls only. Only Smokescreen and external LLM endpoints communicate here.
+- **`proxy-net`**: Connects the reverse proxy (Caddy/Nginx) to the OpenClaw gateway. The only path for inbound HTTPS to reach the application.
 
 ## Monitoring
 
-Monitoring services (Prometheus, Grafana, Uptime Kuma) run on a **separate VPS** and are deployed via `ansible-playbook caprover-playbook.yml`. They scrape the OpenClaw host remotely over HTTPS, keeping monitoring infrastructure isolated from the production workload. This separation ensures that a compromise of the monitoring stack does not grant access to the application network, and vice versa.
+Monitoring services (Prometheus, Grafana, Uptime Kuma) run on a **separate VPS** and are deployed via `ansible-playbook caprover-playbook.yml`. They scrape the OpenClaw host remotely over HTTPS, keeping monitoring isolated from the production workload. A compromise of the monitoring stack does not grant access to the application network.

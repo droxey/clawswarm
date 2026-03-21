@@ -20,7 +20,7 @@ We aim to respond within 48 hours and patch critical issues within 7 days.
 
 ## Security Model
 
-Clincher implements a 9-layer defense-in-depth architecture for hardened AI agent deployment:
+Clincher uses 9 hardening layers to lock down the AI agent:
 
 1. **Network isolation** — `openclaw-net` is `internal: true` (no direct internet)
 2. **Egress control** — Smokescreen whitelists only HTTPS to LLM provider domains

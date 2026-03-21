@@ -1,6 +1,6 @@
 # Security Model
 
-> Defense-in-depth architecture for hardened AI agent deployment.
+> Hardening layers for the OpenClaw agent deployment.
 
 ---
 
@@ -34,7 +34,7 @@ The Docker socket proxy (`docker-socket-proxy`) exposes a limited subset of the 
 
 ### 4. Container Hardening
 
-All infrastructure containers run with `cap_drop: ["ALL"]`, removing every Linux capability. The `no-new-privileges` security option is enforced at both the Docker daemon level and per-container, preventing processes from gaining additional privileges via `setuid` binaries or other escalation mechanisms.
+All infrastructure containers run with `cap_drop: ["ALL"]`, removing every Linux capability. The `no-new-privileges` security option is enforced at both the Docker daemon level and per-container, preventing processes from gaining privileges via `setuid` binaries.
 
 ### 5. Sandbox Isolation
 
@@ -54,7 +54,7 @@ Agent sandbox containers are configured with:
 - **Agent-level denials**: `process`, `browser`, `nodes`, `gateway`, `sessions_spawn`, `sessions_send`, `elevated`, `host_exec`, `docker`, `camera`, `canvas`, `cron`
 - **Gateway-level denials**: `sessions_spawn`, `sessions_send`, `gateway`, `elevated`, `host_exec`, `docker`, `camera`, `canvas`, `cron`
 
-The dual-layer denial ensures tools are blocked even if an agent-level configuration is bypassed.
+The dual-layer denial blocks tools even if the agent-level config is bypassed.
 
 ### 7. Credential Handling
 

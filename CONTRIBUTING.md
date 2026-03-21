@@ -1,12 +1,12 @@
 # Contributing to Clincher
 
-Thank you for your interest in contributing to clincher! This project welcomes contributions of all sizes.
+Contributions of all sizes are welcome.
 
 ## Ways to Contribute
 
 ### Add or Improve an Ansible Role
 
-Each role lives in `roles/` and follows a consistent structure. To add a new role:
+Each role lives in `roles/` and follows the same structure. To add a new role:
 
 1. Create a new directory under `roles/` with `tasks/main.yml`
 2. Add a Molecule test scenario under `roles/<name>/molecule/default/`
