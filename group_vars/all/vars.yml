@@ -243,8 +243,9 @@ agency_agents_divisions:
   - specialized
 
 # ── Vendor Skills (from awesome-agent-skills) ─────────────────────────
-# Official skills from Anthropic, Vercel, Stripe, Cloudflare, HashiCorp, and
-# Google Workspace. Sourced via https://github.com/VoltAgent/awesome-agent-skills
+# Official skills from Anthropic, OpenAI, Google Gemini, Vercel, Stripe,
+# Cloudflare, HashiCorp, and Google Workspace.
+# Sourced via https://github.com/VoltAgent/awesome-agent-skills
 # Each entry defines the repo URL, pinned commit SHA, and the subdirectory within
 # the repo that contains individual skill folders.
 # Deployed into /root/.openclaw/agents/vendor/<name>/ inside the container.
@@ -286,6 +287,18 @@ vendor_skills:
     # SHA is HEAD of main as of 2026-03-09. To update:
     #   git ls-remote https://github.com/googleworkspace/cli refs/heads/main
     version: "e9970db26fb32ca97f11ce0d8c7c53e4eedd81cc"
+    subdir: "skills"
+  - name: openai
+    repo: "https://github.com/openai/skills.git"
+    # SHA is HEAD of main as of 2026-03-21. To update:
+    #   git ls-remote https://github.com/openai/skills refs/heads/main
+    version: "82d2c5b44ac234ec0f204f647562a4349d90ef43"
+    subdir: "skills"
+  - name: google-gemini
+    repo: "https://github.com/google-gemini/gemini-skills.git"
+    # SHA is HEAD of main as of 2026-03-21. To update:
+    #   git ls-remote https://github.com/google-gemini/gemini-skills refs/heads/main
+    version: "6c84b961890eb63fce2ed1162bfef8f66047f5f4"
     subdir: "skills"
 
 # ── Agent Orchestrator (Multi-Agent Coordination) ──────────────────────
