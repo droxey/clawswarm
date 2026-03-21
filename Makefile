@@ -1,18 +1,32 @@
 .PHONY: lint test role-tests deploy verify check caprover-check caprover-deploy caprover-verify scan bootstrap setup update-pins update-pins-dry orchestrator smoke-test help
 
-lint:                          ## Run all linters (yamllint + ansible-lint + shellcheck + syntax check)
-	yamllint . && ansible-lint && ansible-playbook playbook.yml --syntax-check && ansible-playbook caprover-playbook.yml --syntax-check && bash -n bootstrap.sh && shellcheck bootstrap.sh && bash -n scripts/update-pins.sh && shellcheck scripts/update-pins.sh && bash -n scripts/caprover-bootstrap-keys.sh && shellcheck scripts/caprover-bootstrap-keys.sh && bash -n scripts/smoke-test-models.sh && shellcheck scripts/smoke-test-models.sh
+lint:                          ## Run all linters in parallel (yamllint + ansible-lint + shellcheck + syntax check)
+	@echo "Running linters in parallel…" && \
+	fail=0; \
+	yamllint . & p1=$$!; \
+	ansible-lint & p2=$$!; \
+	(ansible-playbook playbook.yml --syntax-check && ansible-playbook caprover-playbook.yml --syntax-check) & p3=$$!; \
+	(bash -n bootstrap.sh && shellcheck bootstrap.sh && \
+	 bash -n scripts/update-pins.sh && shellcheck scripts/update-pins.sh && \
+	 bash -n scripts/caprover-bootstrap-keys.sh && shellcheck scripts/caprover-bootstrap-keys.sh && \
+	 bash -n scripts/smoke-test-models.sh && shellcheck scripts/smoke-test-models.sh) & p4=$$!; \
+	wait $$p1 || fail=1; wait $$p2 || fail=1; wait $$p3 || fail=1; wait $$p4 || fail=1; \
+	[ $$fail -eq 0 ] && echo "All linters passed" || (echo "Lint failed" && exit 1)
 
-test:                          ## Run all Molecule tests (project, CapRover, and role-level)
+test:                          ## Run all Molecule tests (project + CapRover + role-level)
 	molecule test -s default && molecule test -s caprover && $(MAKE) role-tests
 
-role-tests:                    ## Run Molecule tests for template-bearing roles
-	cd roles/base && molecule test
-	cd roles/openclaw-config && molecule test
-	cd roles/openclaw-harden && molecule test
-	cd roles/reverse-proxy && molecule test
-	cd roles/maintenance && molecule test
-	cd roles/convenience && molecule test
+role-tests:                    ## Run Molecule tests for template-bearing roles (parallel)
+	@fail=0; \
+	(cd roles/base && molecule test) & p1=$$!; \
+	(cd roles/openclaw-config && molecule test) & p2=$$!; \
+	(cd roles/openclaw-harden && molecule test) & p3=$$!; \
+	(cd roles/reverse-proxy && molecule test) & p4=$$!; \
+	(cd roles/maintenance && molecule test) & p5=$$!; \
+	(cd roles/convenience && molecule test) & p6=$$!; \
+	wait $$p1 || fail=1; wait $$p2 || fail=1; wait $$p3 || fail=1; \
+	wait $$p4 || fail=1; wait $$p5 || fail=1; wait $$p6 || fail=1; \
+	[ $$fail -eq 0 ] && echo "All role tests passed" || (echo "Role tests failed" && exit 1)
 
 update-pins:                   ## Fetch latest commit SHAs for all pinned dependencies
 	bash scripts/update-pins.sh

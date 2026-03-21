@@ -1,0 +1,44 @@
+---
+# deploy-app.yml — Register and configure a single CapRover app
+# Called via include_tasks with `app` variable containing app definition dict.
+#
+# Required keys: name, image, port, description, memory_limit, cpu_limit
+# Optional keys: persistent (default true), env_vars (default []),
+#                volumes (default []), no_log (default false),
+#                pre_tasks (list of {task, args} dicts)
+
+- name: "Register {{ app.name }}"
+  ansible.builtin.uri:
+    url: "http://{{ ansible_host }}:3000/api/v2/user/apps/appDefinitions/register"
+    method: POST
+    body_format: json
+    body:
+      appName: "{{ app.name }}"
+      hasPersistentData: "{{ app.persistent | default(true) }}"
+    headers:
+      x-captain-auth: "{{ cap_token }}"
+    status_code: [200, 400]
+
+- name: "Configure {{ app.name }}"
+  ansible.builtin.uri:
+    url: "http://{{ ansible_host }}:3000/api/v2/user/apps/appDefinitions/update"
+    method: POST
+    body_format: json
+    body:
+      appName: "{{ app.name }}"
+      instanceCount: 1
+      captainDefinitionContent:
+        schemaVersion: 2
+        imageName: "{{ app.image }}"
+      envVars: "{{ app.env_vars | default([]) }}"
+      volumes: "{{ app.volumes | default([]) }}"
+      ports: []
+      containerHttpPort: "{{ app.port }}"
+      description: "{{ app.description }}"
+      resourceLimits:
+        memoryLimitInMB: "{{ (app.memory_limit | regex_replace('[^0-9]', '')) | int }}"
+        cpuLimit: "{{ app.cpu_limit }}"
+    headers:
+      x-captain-auth: "{{ cap_token }}"
+    status_code: [200, 400]
+  no_log: "{{ app.no_log | default(false) }}"

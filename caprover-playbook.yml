@@ -152,6 +152,7 @@
 - name: Initialize CapRover Swarm (leader)
   hosts: caprover_leader
   become: true
+  gather_facts: false
   any_errors_fatal: true
   tags: [swarm]
 
@@ -172,6 +173,7 @@
 - name: Join workers to CapRover Swarm
   hosts: caprover_workers
   become: true
+  gather_facts: false
   any_errors_fatal: true
   tags: [swarm]
 
@@ -185,6 +187,7 @@
 - name: Deploy CapRover apps
   hosts: caprover_leader
   become: true
+  gather_facts: false
   any_errors_fatal: true
   tags: [apps]
 
@@ -220,6 +223,7 @@
 - name: Verify CapRover deployment
   hosts: caprover_leader
   become: true
+  gather_facts: false
   tags: [verify]
 
   tasks:

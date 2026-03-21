@@ -144,11 +144,13 @@
   changed_when: false
   check_mode: false
 
-- name: Wait for openclaw container to be running after mode change
-  ansible.builtin.command: docker inspect openclaw --format={{ '{{' }}.State.Status{{ '}}' }}
-  register: _oc_mode_state
-  until: _oc_mode_state.stdout == "running"
-  retries: 12
+- name: Wait for openclaw to be healthy after mode change
+  ansible.builtin.shell: >
+    docker inspect openclaw
+    --format '{{ docker_health_format }}'
+  register: _oc_mode_health
+  until: _oc_mode_health.stdout == "healthy"
+  retries: 24
   delay: 5
   changed_when: false
   check_mode: false
@@ -161,11 +163,13 @@
   changed_when: false
   check_mode: false
 
-- name: Wait for openclaw container to be running after network config
-  ansible.builtin.command: docker inspect openclaw --format={{ '{{' }}.State.Status{{ '}}' }}
-  register: _oc_state
-  until: _oc_state.stdout == "running"
-  retries: 12
+- name: Wait for openclaw to be healthy after network config
+  ansible.builtin.shell: >
+    docker inspect openclaw
+    --format '{{ docker_health_format }}'
+  register: _oc_health
+  until: _oc_health.stdout == "healthy"
+  retries: 24
   delay: 5
   changed_when: false
   check_mode: false
@@ -179,11 +183,11 @@
   changed_when: false
   check_mode: false
 
-- name: Wait for openclaw container to be running
-  ansible.builtin.command: docker inspect openclaw --format={{ '{{' }}.State.Status{{ '}}' }}
+- name: Wait for openclaw to be healthy after UI config
+  ansible.builtin.command: "docker inspect openclaw --format={{ docker_health_format }}"
   register: _oc_state
-  until: _oc_state.stdout == "running"
-  retries: 12
+  until: _oc_state.stdout == "healthy"
+  retries: 24
   delay: 5
   changed_when: false
   check_mode: false
@@ -281,18 +285,11 @@
 # ── File Permissions ──────────────────────────────────────────────────
 # cap_drop=ALL prevents chown, but chmod on owned files works without
 # capabilities. Restrict log file to owner-only to prevent message leaks.
-- name: Check if openclaw log file exists
+- name: Restrict log file permissions (if exists)
   ansible.builtin.command: >
-    docker exec openclaw test -f /home/node/.openclaw/logs/openclaw.log
-  register: openclaw_log_exists
-  changed_when: false
-  failed_when: false
-  check_mode: false
-
-- name: Restrict log file permissions
-  ansible.builtin.command: >
-    docker exec openclaw chmod 600 /home/node/.openclaw/logs/openclaw.log
-  when: openclaw_log_exists.rc == 0
+    docker exec openclaw sh -c
+    'test -f /home/node/.openclaw/logs/openclaw.log &&
+     chmod 600 /home/node/.openclaw/logs/openclaw.log || true'
   changed_when: false
   check_mode: false
 

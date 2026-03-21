@@ -22,6 +22,10 @@ LITELLM_URL="http://openclaw-litellm:4000/chat/completions"
 PROMPT="Say hello in exactly 3 words"
 DELAY=1
 
+# ── Helpers ─────────────────────────────────────────────────────────
+elapsed_secs() { python3 -c "print(f'{($1 - $2) / 1e9:.2f}')"; }
+accum_secs()   { python3 -c "print(f'{$1 + ($2 - $3) / 1e9:.1f}')"; }
+
 # ── Parse args ────────────────────────────────────────────────────────
 while [[ $# -gt 0 ]]; do
   case "$1" in
@@ -93,8 +97,8 @@ print(json.dumps({
     "$LITELLM_URL" 2>&1) || true
 
   END=$(date +%s%N)
-  ELAPSED=$(python3 -c "print(f'{($END - $START) / 1e9:.2f}')")
-  TOTAL_TIME=$(python3 -c "print(f'{$TOTAL_TIME + ($END - $START) / 1e9:.1f}')")
+  ELAPSED=$(elapsed_secs "$END" "$START")
+  TOTAL_TIME=$(accum_secs "$TOTAL_TIME" "$END" "$START")
 
   # Split response body and HTTP status code
   HTTP_CODE=$(echo "$HTTP_RESPONSE" | tail -1)
@@ -174,7 +178,7 @@ if $INTEGRATIONS && ! $DRY_RUN; then
       -x http://openclaw-egress:4750 \
       "https://api.telegram.org/bot${TG_TOKEN}/getMe" 2>&1) || true
     END=$(date +%s%N)
-    ELAPSED=$(python3 -c "print(f'{($END - $START) / 1e9:.2f}')")
+    ELAPSED=$(elapsed_secs "$END" "$START")
 
     TG_OK=$(python3 -c "
 import json, sys
@@ -201,7 +205,7 @@ except Exception as e:
   START=$(date +%s%N)
   DOCTOR_OUT=$(docker exec "$CONTAINER" openclaw doctor --non-interactive 2>&1) || true
   END=$(date +%s%N)
-  ELAPSED=$(python3 -c "print(f'{($END - $START) / 1e9:.2f}')")
+  ELAPSED=$(elapsed_secs "$END" "$START")
 
   # Doctor exits 0 on success, non-zero on critical failures.
   # Warnings (like groupPolicy) are expected and not failures.
@@ -220,7 +224,7 @@ except Exception as e:
     --max-time 10 -x http://openclaw-egress:4750 \
     https://api.anthropic.com 2>&1) || true
   END=$(date +%s%N)
-  ELAPSED=$(python3 -c "print(f'{($END - $START) / 1e9:.2f}')")
+  ELAPSED=$(elapsed_secs "$END" "$START")
 
   # Any HTTP response (even 401/404) means the proxy allowed the connection
   if [[ "$EGRESS_OK" =~ ^[2345] ]]; then
@@ -237,7 +241,7 @@ except Exception as e:
     --max-time 10 -x http://openclaw-egress:4750 \
     https://example.com 2>&1) || true
   END=$(date +%s%N)
-  ELAPSED=$(python3 -c "print(f'{($END - $START) / 1e9:.2f}')")
+  ELAPSED=$(elapsed_secs "$END" "$START")
 
   if [[ "$EGRESS_BLOCK" =~ ^[45] ]] || [[ "$EGRESS_BLOCK" == "000" ]] || [[ -z "$EGRESS_BLOCK" ]]; then
     printf '%-50s %-8s %-8s %s\n' "Egress: blocked domain" "PASS" "$ELAPSED" "example.com -> blocked"
