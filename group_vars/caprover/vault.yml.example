@@ -15,5 +15,9 @@ caprover_grafana_admin_password: ""
 # Generate: openssl rand -base64 24
 caprover_codeserver_password: ""
 
+# RackNerd client portal credentials (REQUIRED if racknerd-exporter enabled)
+caprover_racknerd_username: ""
+caprover_racknerd_password: ""
+
 # Docker Swarm join token (auto-generated during setup)
 # caprover_swarm_join_token: ""

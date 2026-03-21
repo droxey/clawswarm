@@ -29,6 +29,15 @@ scrape_configs:
     scrape_interval: 60s
 {% endif %}
 
+{% if caprover_racknerd_exporter_enabled | bool %}
+  - job_name: racknerd-vps
+    static_configs:
+      - targets:
+          - "srv-captain--racknerd-exporter:{{ caprover_racknerd_exporter_port }}"
+    scrape_interval: 300s
+    scrape_timeout: 30s
+{% endif %}
+
   - job_name: caprover-node-metrics
     static_configs:
       - targets:

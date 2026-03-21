@@ -9,7 +9,7 @@
 
 - name: "Register {{ app.name }}"
   ansible.builtin.uri:
-    url: "http://{{ ansible_host }}:3000/api/v2/user/apps/appDefinitions/register"
+    url: "https://captain.{{ caprover_root_domain }}/api/v2/user/apps/appDefinitions/register"
     method: POST
     body_format: json
     body:
@@ -21,7 +21,7 @@
 
 - name: "Configure {{ app.name }}"
   ansible.builtin.uri:
-    url: "http://{{ ansible_host }}:3000/api/v2/user/apps/appDefinitions/update"
+    url: "https://captain.{{ caprover_root_domain }}/api/v2/user/apps/appDefinitions/update"
     method: POST
     body_format: json
     body:

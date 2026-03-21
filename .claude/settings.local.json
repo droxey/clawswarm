@@ -35,7 +35,17 @@
       "Bash(pip show:*)",
       "Bash(pipx list:*)",
       "Bash(uv tool:*)",
-      "Bash(curl:*)"
+      "Bash(curl:*)",
+      "Skill(browse)",
+      "WebFetch(domain:www.shareuhack.com)",
+      "WebFetch(domain:scrapegraphai.com)",
+      "WebFetch(domain:rivereditor.com)",
+      "WebFetch(domain:dev.to)",
+      "WebFetch(domain:growth.maestro.onl)",
+      "WebFetch(domain:blog.bytebytego.com)",
+      "Skill(humanizer)",
+      "Bash(git commit:*)",
+      "Bash(git push:*)"
     ]
   },
   "outputStyle": "Explanatory"

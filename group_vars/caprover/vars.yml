@@ -100,5 +100,14 @@ openclaw_server_ip: YOUR_OPENCLAW_SERVER_IP
 openclaw_server_domain: openclaw.yourdomain.com
 openclaw_litellm_port: 4000
 
+# RackNerd exporter — VPS metrics for Prometheus
+caprover_racknerd_exporter_enabled: true
+caprover_racknerd_exporter_version: "latest"
+caprover_racknerd_exporter_memory_limit: "128M"
+caprover_racknerd_exporter_cpu_limit: "0.25"
+caprover_racknerd_exporter_port: 9100
+caprover_racknerd_url: "https://nerdvm.racknerd.com"
+caprover_racknerd_log_level: "INFO"
+
 # --- IPv6 ---
 caprover_ipv6_enabled: true

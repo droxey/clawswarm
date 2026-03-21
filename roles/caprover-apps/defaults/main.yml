@@ -27,3 +27,15 @@ caprover_uptimekuma_memory_limit: "256M"
 caprover_uptimekuma_cpu_limit: "0.5"
 caprover_codeserver_memory_limit: "2G"
 caprover_codeserver_cpu_limit: "2.0"
+
+# RackNerd exporter
+caprover_racknerd_exporter_enabled: true
+caprover_racknerd_exporter_version: "latest"
+caprover_racknerd_exporter_memory_limit: "128M"
+caprover_racknerd_exporter_cpu_limit: "0.25"
+caprover_racknerd_exporter_port: 9100
+caprover_racknerd_url: "https://nerdvm.racknerd.com"
+caprover_racknerd_log_level: "INFO"
+# Auth — must be overridden in vault.yml
+caprover_racknerd_username: ""
+caprover_racknerd_password: ""

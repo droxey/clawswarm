@@ -8,7 +8,7 @@ all:
     caprover_leader:
       hosts:
         caprover-ny:
-          ansible_host: 107.174.35.212
+          ansible_host: "nyc.bots.ac"
           caprover_role: leader
 
     caprover_workers:

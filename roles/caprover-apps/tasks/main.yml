@@ -7,7 +7,7 @@
 
 - name: Get CapRover auth token
   ansible.builtin.uri:
-    url: "http://{{ ansible_host }}:3000/api/v2/login"
+    url: "https://captain.{{ caprover_root_domain }}/api/v2/login"
     method: POST
     body_format: json
     body:
@@ -164,6 +164,36 @@
     - caprover_codeserver_enabled | bool
   tags: [apps, codeserver]
 
+# ── RackNerd Exporter ─────────────────────────────────────────────
+
+- name: Deploy RackNerd Exporter app
+  ansible.builtin.include_tasks: deploy-app.yml
+  vars:
+    app:
+      name: racknerd-exporter
+      image: "ghcr.io/greenlogles/racknerd_exporter:{{ caprover_racknerd_exporter_version }}"
+      port: "{{ caprover_racknerd_exporter_port }}"
+      description: "RackNerd VPS metrics exporter for Prometheus"
+      memory_limit: "{{ caprover_racknerd_exporter_memory_limit }}"
+      cpu_limit: "{{ caprover_racknerd_exporter_cpu_limit }}"
+      persistent: false
+      no_log: true
+      env_vars:
+        - key: RACKNERD_URL
+          value: "{{ caprover_racknerd_url }}"
+        - key: RACKNERD_USERNAME
+          value: "{{ caprover_racknerd_username }}"
+        - key: RACKNERD_PASSWORD
+          value: "{{ caprover_racknerd_password }}"
+        - key: RACKNERD_PORT
+          value: "{{ caprover_racknerd_exporter_port }}"
+        - key: LOG_LEVEL
+          value: "{{ caprover_racknerd_log_level }}"
+  when:
+    - caprover_role == 'leader'
+    - caprover_racknerd_exporter_enabled | bool
+  tags: [apps, racknerd-exporter]
+
 # ── Enable HTTPS for all apps ──────────────────────────────────────
 
 - name: Enable HTTPS on deployed apps
@@ -182,16 +212,17 @@
 
     - name: Enable HTTPS for each app
       ansible.builtin.uri:
-        url: "http://{{ ansible_host }}:3000/api/v2/user/apps/appDefinitions/enablecustomdomainssl"
+        url: "https://captain.{{ caprover_root_domain }}/api/v2/user/apps/appDefinitions/enablecustomdomainssl"
         method: POST
         body_format: json
         body:
           appName: "{{ item }}"
         headers:
           x-captain-auth: "{{ cap_token }}"
-        status_code: [200, 400]
+        status_code: [200, 400, 500]
       loop: "{{ ssl_apps }}"
       when: caprover_force_ssl | bool
+      ignore_errors: true
 
 # ── Display access info ────────────────────────────────────────────
 
@@ -214,5 +245,8 @@
       {% endif %}
       {% if caprover_codeserver_enabled | bool %}
       code-server        : https://code-server.{{ caprover_root_domain }}
+      {% endif %}
+      {% if caprover_racknerd_exporter_enabled | bool %}
+      RackNerd Exporter  : srv-captain--racknerd-exporter:{{ caprover_racknerd_exporter_port }}/metrics (internal)
       {% endif %}
       ═══════════════════════════════════════════════════
