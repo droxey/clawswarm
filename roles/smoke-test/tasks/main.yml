@@ -1,0 +1,60 @@
+---
+# Smoke-test all configured LLM models via LiteLLM /chat/completions.
+# Sends a tiny prompt to each model and reports pass/fail.
+# Cost: ~$0.01-0.02 per run (15 models, max_tokens=15).
+#
+# Usage: ansible-playbook playbook.yml --tags smoke-test --ask-vault-pass
+
+- name: Preflight — verify LiteLLM is healthy
+  ansible.builtin.command: >
+    docker exec openclaw
+    curl -sf http://openclaw-litellm:4000/health/liveliness
+  changed_when: false
+  check_mode: false
+
+- name: Write LiteLLM master key to secure tempfile
+  ansible.builtin.copy:
+    content: "{{ litellm_master_key }}"
+    dest: /tmp/.smoke-test-key
+    mode: "0600"
+    owner: root
+  no_log: true
+
+- name: Build comma-separated model list
+  ansible.builtin.set_fact:
+    smoke_test_model_list: "{{ litellm_models | map(attribute='name') | join(',') }}"
+
+- name: Copy smoke test script to remote host
+  ansible.builtin.copy:
+    src: "{{ playbook_dir }}/scripts/smoke-test-models.sh"
+    dest: /tmp/smoke-test-models.sh
+    mode: "0700"
+
+- name: Run smoke test against all models
+  ansible.builtin.command: >
+    /tmp/smoke-test-models.sh
+    --key-file /tmp/.smoke-test-key
+    --models "{{ smoke_test_model_list }}"
+    --max-tokens {{ smoke_test_max_tokens | default(15) }}
+    --timeout {{ smoke_test_timeout | default(30) }}
+  register: smoke_result
+  changed_when: false
+  check_mode: false
+  failed_when: false
+
+- name: Display smoke test results
+  ansible.builtin.debug:
+    msg: "{{ smoke_result.stdout }}"
+
+- name: Clean up temporary files
+  ansible.builtin.file:
+    path: "{{ item }}"
+    state: absent
+  loop:
+    - /tmp/.smoke-test-key
+    - /tmp/smoke-test-models.sh
+
+- name: Fail if any model tests failed
+  ansible.builtin.fail:
+    msg: "{{ smoke_result.stdout_lines | last | default('One or more models failed smoke test') }}"
+  when: smoke_result.rc != 0

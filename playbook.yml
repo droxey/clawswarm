@@ -11,7 +11,7 @@
 # Prerequisite: apt install sshpass (needed for Ansible to send SSH passwords).
 # After bootstrap pushes your SSH key, subsequent runs use key-based auth only.
 #
-# Tags: base, config, deploy, harden, integrate, proxy, agents, orchestrator, convenience, verify, maintenance
+# Tags: base, config, deploy, harden, integrate, proxy, agents, orchestrator, convenience, verify, maintenance, smoke-test
 
 # ── Bootstrap: ensure deploy user can SSH on ssh_port ────────────────────
 # Handles three server states:
@@ -383,3 +383,5 @@
       tags: [verify]
     - role: maintenance
       tags: [maintenance]
+    - role: smoke-test
+      tags: [smoke-test, never]

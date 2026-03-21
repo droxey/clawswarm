@@ -75,13 +75,13 @@ egress_extra_domains:
 # ── LiteLLM ──────────────────────────────────────────────────────────
 litellm_models:
   # ── Anthropic (Claude) ──────────────────────────────────────────────
-  - name: "anthropic/claude-opus-4-6"
-    model: "claude-opus-4-6"
+  - name: "anthropic/claude-opus-4-5"
+    model: "claude-opus-4-5"
     key_env: "ANTHROPIC_API_KEY"
     max_budget: 100.0
     rpm: 60
-  - name: "anthropic/claude-sonnet-4-6"
-    model: "claude-sonnet-4-6"
+  - name: "anthropic/claude-sonnet-4-5"
+    model: "claude-sonnet-4-5"
     key_env: "ANTHROPIC_API_KEY"
     max_budget: 50.0
     rpm: 120
@@ -91,13 +91,13 @@ litellm_models:
     max_budget: 20.0
     rpm: 300
   # ── OpenAI ──────────────────────────────────────────────────────────
-  - name: "openai/gpt-5.4"
-    model: "gpt-5.4"
+  - name: "openai/gpt-5.2"
+    model: "gpt-5.2"
     key_env: "OPENAI_API_KEY"
     max_budget: 80.0
     rpm: 60
-  - name: "openai/gpt-5.4-mini"
-    model: "gpt-5.4-mini"
+  - name: "openai/gpt-5-mini"
+    model: "gpt-5-mini"
     key_env: "OPENAI_API_KEY"
     max_budget: 20.0
     rpm: 200
@@ -165,7 +165,7 @@ redis_maxmemory: "256mb"
 # redis_password lives in vault.yml — do NOT set here (vars.yml overrides vault).
 
 # ── OpenClaw Hardening ────────────────────────────────────────────────
-openclaw_default_model: "anthropic/claude-opus-4-6"
+openclaw_default_model: "anthropic/claude-opus-4-5"
 openclaw_heartbeat_model: "anthropic/claude-haiku-4-5"
 openclaw_max_tokens: 4096
 # Optional extra env vars passed into the OpenClaw container via /opt/openclaw/.env.

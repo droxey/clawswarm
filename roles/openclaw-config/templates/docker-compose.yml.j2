@@ -119,6 +119,7 @@ services:
   litellm:
     image: ghcr.io/berriai/litellm:{{ litellm_version }}
     container_name: openclaw-litellm
+    command: ["--config", "/app/config.yaml", "--port", "4000"]
     volumes:
       - ./config/litellm-config.yaml:/app/config.yaml:ro
     environment:

@@ -1,7 +1,7 @@
-.PHONY: lint test role-tests deploy verify check caprover-check caprover-deploy caprover-verify scan bootstrap setup update-pins update-pins-dry orchestrator help
+.PHONY: lint test role-tests deploy verify check caprover-check caprover-deploy caprover-verify scan bootstrap setup update-pins update-pins-dry orchestrator smoke-test help
 
 lint:                          ## Run all linters (yamllint + ansible-lint + shellcheck + syntax check)
-	yamllint . && ansible-lint && ansible-playbook playbook.yml --syntax-check && ansible-playbook caprover-playbook.yml --syntax-check && bash -n bootstrap.sh && shellcheck bootstrap.sh && bash -n scripts/update-pins.sh && shellcheck scripts/update-pins.sh && bash -n scripts/caprover-bootstrap-keys.sh && shellcheck scripts/caprover-bootstrap-keys.sh
+	yamllint . && ansible-lint && ansible-playbook playbook.yml --syntax-check && ansible-playbook caprover-playbook.yml --syntax-check && bash -n bootstrap.sh && shellcheck bootstrap.sh && bash -n scripts/update-pins.sh && shellcheck scripts/update-pins.sh && bash -n scripts/caprover-bootstrap-keys.sh && shellcheck scripts/caprover-bootstrap-keys.sh && bash -n scripts/smoke-test-models.sh && shellcheck scripts/smoke-test-models.sh
 
 test:                          ## Run all Molecule tests (project, CapRover, and role-level)
 	molecule test -s default && molecule test -s caprover && $(MAKE) role-tests
@@ -44,6 +44,9 @@ scan:                          ## Scan for secret leaks (requires gitleaks)
 	else \
 		echo "SKIP scan: gitleaks not found — install with 'brew install gitleaks'"; \
 	fi
+
+smoke-test:                    ## Smoke-test all LLM models via LiteLLM (~$0.02)
+	ansible-playbook playbook.yml -i inventory/hosts.yml --tags smoke-test --ask-vault-pass
 
 orchestrator:                  ## Open agent orchestrator dashboard via SSH tunnel
 	@echo "\n\033[36m🔗 Agent Orchestrator: http://localhost:3000"

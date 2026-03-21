@@ -31,7 +31,7 @@ litellm_settings:
     port: 6379
     ttl: {{ litellm_cache_ttl }}
     similarity_threshold: {{ litellm_similarity_threshold }}
-    redis_semantic_cache_embedding_model: "voyage-cache-embed"
+    redis_semantic_cache_embedding_model: "voyage/voyage-3-lite"
     supported_call_types:
       - "acompletion"
       - "atext_completion"
@@ -43,4 +43,4 @@ router_settings:
   num_retries: 2
   retry_after: 5
   routing_strategy: "usage-based-routing-v2"
-  enable_pre_call_checks: true
+  enable_pre_call_checks: false
