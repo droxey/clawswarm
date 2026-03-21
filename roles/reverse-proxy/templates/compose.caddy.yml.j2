@@ -10,7 +10,7 @@ services:
       - caddy-data:/data
       - caddy-config:/config
     networks:
-      - ingress-net
+      - egress-net
       - proxy-net
     cap_drop:
       - ALL
@@ -24,9 +24,9 @@ networks:
   proxy-net:
     external: true
     name: openclaw_proxy-net
-  ingress-net:
+  egress-net:
     external: true
-    name: openclaw_ingress-net
+    name: openclaw_egress-net
 
 volumes:
   caddy-data:

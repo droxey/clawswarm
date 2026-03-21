@@ -738,16 +738,16 @@ model_list:
     model_info:
       max_budget: 100.0        # USD per month
     rpm: 60                    # requests per minute
-  - model_name: "anthropic/claude-sonnet-4-5-20250929"
+  - model_name: "anthropic/claude-sonnet-4-6"
     litellm_params:
-      model: "claude-sonnet-4-5-20250929"
+      model: "claude-sonnet-4-6"
       api_key: "os.environ/ANTHROPIC_API_KEY"
     model_info:
       max_budget: 50.0
     rpm: 120
-  - model_name: "anthropic/claude-3-5-haiku-latest"
+  - model_name: "anthropic/claude-haiku-4-5"
     litellm_params:
-      model: "claude-3-5-haiku-latest"
+      model: "claude-haiku-4-5"
       api_key: "os.environ/ANTHROPIC_API_KEY"
     model_info:
       max_budget: 20.0
@@ -1172,8 +1172,10 @@ Inside the container shell:
 
 ```bash
 # ── Gateway Network ──────────────────────────────────────────────────
-# Bind to all interfaces — reverse proxy connects via the bridge network.
-openclaw config set gateway.bind "0.0.0.0"
+# Bind to LAN interfaces — required for Docker bridge networking.
+# The tunnel/proxy container connects via proxy-net, which is a bridge
+# network (not loopback). "loopback" breaks this connection.
+openclaw config set gateway.bind "lan"
 
 # trustedProxies: include the proxy-net subnet.
 # Find it: docker network inspect openclaw_proxy-net --format '{{range .IPAM.Config}}{{.Subnet}}{{end}}'
@@ -1251,7 +1253,7 @@ openclaw config set agents.defaults.maxTokens 4096
 # Route heartbeats through LiteLLM's cheapest model instead of Opus.
 # Heartbeats fire every 30 min — at Opus pricing, that's $2-5/day idle cost.
 # Haiku handles heartbeat health checks at 1/60th the cost.
-openclaw config set agents.defaults.model.heartbeat "anthropic/claude-3-5-haiku-latest"
+openclaw config set agents.defaults.model.heartbeat "anthropic/claude-haiku-4-5"
 
 # ── Tool Denials ─────────────────────────────────────────────────────
 openclaw config set agents.defaults.tools.deny '["process", "browser", "nodes", "gateway", "sessions_spawn", "sessions_send", "elevated", "host_exec", "docker", "camera", "canvas", "cron"]'
@@ -1804,7 +1806,7 @@ services:
       - caddy-data:/data
       - caddy-config:/config
     networks:
-      - ingress-net
+      - egress-net
       - proxy-net
     cap_drop:
       - ALL
@@ -1818,9 +1820,9 @@ networks:
   proxy-net:
     external: true
     name: openclaw_proxy-net
-  ingress-net:
+  egress-net:
     external: true
-    name: openclaw_ingress-net
+    name: openclaw_egress-net
 
 volumes:
   caddy-data:
@@ -1830,7 +1832,7 @@ EOF
 docker compose -f docker-compose.yml -f compose.caddy.yml up -d
 ```
 
-> **Why a separate file?** Appending YAML with `cat >>` breaks the document structure. A Compose override file (`-f`) is the idiomatic way to layer services. Both `proxy-net` and `ingress-net` are declared `external` so they reference networks already created by the base compose file.
+> **Why a separate file?** Appending YAML with `cat >>` breaks the document structure. A Compose override file (`-f`) is the idiomatic way to layer services. Both `proxy-net` and `egress-net` are declared `external` so they reference networks already created by the base compose file.
 
 #### Option B: Cloudflare Tunnel (Maximum Security — No Open Ports)
 
@@ -2034,7 +2036,7 @@ docker exec openclaw openclaw config get session.dmScope
 
 # ── Token Cost Optimization Spot-Check ────────────────────────────────
 docker exec openclaw openclaw config get agents.defaults.model.heartbeat
-# Expected: "anthropic/claude-3-5-haiku-latest"
+# Expected: "anthropic/claude-haiku-4-5"
 docker exec openclaw openclaw config get agents.defaults.maxTokens
 # Expected: 4096
 docker exec openclaw openclaw config get agents.defaults.sandbox.docker.idleHours
@@ -2488,7 +2490,7 @@ Default credentials are `admin` / `admin` — change the password on first login
 | Symptom | Diagnostic | Fix |
 |---------|-----------|-----|
 | Sandbox fails | `docker logs openclaw-docker-proxy` | Verify EXEC=1, check socket proxy is reachable on `openclaw-net` |
-| Gateway unreachable | `docker compose logs openclaw` | Confirm `gateway.bind "0.0.0.0"`, check `trustedProxies` includes `proxy-net` subnet |
+| Gateway unreachable | `docker compose logs openclaw` | Confirm `gateway.bind "lan"`, check `trustedProxies` includes `proxy-net` subnet |
 | Gateway auth rejected | `docker exec openclaw openclaw config get gateway.auth.mode` | Re-run Step 5 auth section; verify `Authorization: Bearer <token>` header |
 | Agents can't reach LLM APIs | `docker exec openclaw wget -qO- http://openclaw-litellm:4000/health/liveliness` | Verify LiteLLM is healthy, check `agents.defaults.apiBase` points to `http://openclaw-litellm:4000`, check `ANTHROPIC_API_KEY` in `/opt/openclaw/.env` |
 | LiteLLM can't reach providers | `docker exec openclaw-litellm curl -x http://openclaw-egress:4750 -I https://api.anthropic.com` | Check `smokescreen-acl.yaml` whitelist, verify `HTTP_PROXY` env var |
@@ -3349,7 +3351,7 @@ model_list:
       api_key: "os.environ/ANTHROPIC_API_KEY"
   - model_name: "anthropic/claude-opus-4-6"
     litellm_params:
-      model: "claude-sonnet-4-5-20250929"    # fallback to Sonnet if Opus is rate-limited
+      model: "claude-sonnet-4-6"    # fallback to Sonnet if Opus is rate-limited
       api_key: "os.environ/ANTHROPIC_API_KEY"
 
 router_settings:

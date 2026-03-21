@@ -53,7 +53,7 @@
           - "'NET_BIND_SERVICE' in (caddy_compose_content.content | b64decode)"
           - "'no-new-privileges:true' in (caddy_compose_content.content | b64decode)"
           - "'openclaw_proxy-net' in (caddy_compose_content.content | b64decode)"
-          - "'openclaw_ingress-net' in (caddy_compose_content.content | b64decode)"
+          - "'openclaw_egress-net' in (caddy_compose_content.content | b64decode)"
         fail_msg: "compose.caddy.yml is missing expected content"
 
     - name: Read Tunnel Compose file

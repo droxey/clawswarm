@@ -63,6 +63,7 @@ services:
 {% if openai_api_key is defined %}
       OPENAI_API_KEY: "${OPENAI_API_KEY}"
 {% endif %}
+      OPENCLAW_TZ: "{{ timezone }}"
       OPENCLAW_DISABLE_BONJOUR: "1"
       NODE_OPTIONS: "--dns-result-order=ipv4first"
 {% if openclaw_extra_env is defined %}
@@ -237,8 +238,6 @@ networks:
   proxy-net:
     driver: bridge
     internal: true
-  ingress-net:
-    driver: bridge
   egress-net:
     driver: bridge
 
