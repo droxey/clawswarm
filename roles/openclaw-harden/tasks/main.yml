@@ -291,3 +291,13 @@
   delay: 10
   changed_when: false
   check_mode: false
+
+# ── Device Pairing ──────────────────────────────────────────────────
+# Auto-approve pending device pairing requests so the gateway dashboard
+# is accessible immediately after deploy. Safe to run repeatedly —
+# no-ops when no requests are pending.
+- name: Approve pending device pairing requests
+  ansible.builtin.command: docker exec openclaw openclaw devices approve
+  changed_when: false
+  failed_when: false
+  check_mode: false
