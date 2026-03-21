@@ -11,18 +11,6 @@ caprover_captain_password: ""
 # Generate: openssl rand -base64 24
 caprover_grafana_admin_password: ""
 
-# Infisical encryption key (REQUIRED if infisical enabled)
-# Generate: openssl rand -hex 16
-caprover_infisical_encryption_key: ""
-
-# Infisical auth secret (REQUIRED if infisical enabled)
-# Generate: openssl rand -hex 32
-caprover_infisical_auth_secret: ""
-
-# Infisical Postgres password (REQUIRED if infisical enabled)
-# Generate: openssl rand -base64 24
-caprover_infisical_db_password: ""
-
 # code-server password (REQUIRED if code-server enabled)
 # Generate: openssl rand -base64 24
 caprover_codeserver_password: ""

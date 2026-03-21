@@ -38,9 +38,6 @@ provisioner:
           caprover_captain_password: testpassword
           caprover_grafana_admin_password: testgrafana
           caprover_codeserver_password: testcode
-          caprover_infisical_encryption_key: "test-fixture-key"
-          caprover_infisical_auth_secret: "test-fixture-auth-secret-0000000"
-          caprover_infisical_db_password: testinfisical
   config_options:
     defaults:
       callbacks_enabled: ansible.posix.profile_tasks

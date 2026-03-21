@@ -1,7 +1,7 @@
 ---
 # caprover-apps — Deploy monitoring and management apps via CapRover API
 # Runs ONLY on the leader node
-# Apps: Prometheus, Grafana, Uptime Kuma, code-server, Infisical
+# Apps: Prometheus, Grafana, Uptime Kuma, code-server
 
 # ── Authenticate with CapRover ───────────────────────────────────────
 
@@ -252,141 +252,6 @@
         status_code: [200, 400]
       no_log: true
 
-# ── Infisical (secrets management) ───────────────────────────────────
-
-- name: Deploy Infisical stack
-  when:
-    - caprover_role == 'leader'
-    - caprover_infisical_enabled | bool
-  tags: [apps, infisical]
-  block:
-    - name: Register Infisical Postgres app
-      ansible.builtin.uri:
-        url: "http://{{ ansible_host }}:3000/api/v2/user/apps/appDefinitions/register"
-        method: POST
-        body_format: json
-        body:
-          appName: infisical-db
-          hasPersistentData: true
-        headers:
-          x-captain-auth: "{{ cap_token }}"
-        status_code: [200, 400]
-
-    - name: Configure Infisical Postgres
-      ansible.builtin.uri:
-        url: "http://{{ ansible_host }}:3000/api/v2/user/apps/appDefinitions/update"
-        method: POST
-        body_format: json
-        body:
-          appName: infisical-db
-          instanceCount: 1
-          captainDefinitionContent:
-            schemaVersion: 2
-            imageName: "postgres:{{ caprover_infisical_postgres_version }}"
-          envVars:
-            - key: POSTGRES_DB
-              value: infisical
-            - key: POSTGRES_USER
-              value: infisical
-            - key: POSTGRES_PASSWORD
-              value: "{{ caprover_infisical_db_password }}"
-          volumes:
-            - hostPath: /captain/data/infisical-db
-              containerPath: /var/lib/postgresql/data
-          ports: []
-          containerHttpPort: 5432
-          description: "PostgreSQL for Infisical"
-          resourceLimits:
-            memoryLimitInMB: "{{ (caprover_infisical_postgres_memory_limit | regex_replace('[^0-9]', '')) | int }}"
-        headers:
-          x-captain-auth: "{{ cap_token }}"
-        status_code: [200, 400]
-      no_log: true
-
-    - name: Register Infisical Redis app
-      ansible.builtin.uri:
-        url: "http://{{ ansible_host }}:3000/api/v2/user/apps/appDefinitions/register"
-        method: POST
-        body_format: json
-        body:
-          appName: infisical-redis
-          hasPersistentData: true
-        headers:
-          x-captain-auth: "{{ cap_token }}"
-        status_code: [200, 400]
-
-    - name: Configure Infisical Redis
-      ansible.builtin.uri:
-        url: "http://{{ ansible_host }}:3000/api/v2/user/apps/appDefinitions/update"
-        method: POST
-        body_format: json
-        body:
-          appName: infisical-redis
-          instanceCount: 1
-          captainDefinitionContent:
-            schemaVersion: 2
-            imageName: "redis:{{ caprover_infisical_redis_version }}"
-          envVars: []
-          volumes:
-            - hostPath: /captain/data/infisical-redis
-              containerPath: /data
-          ports: []
-          containerHttpPort: 6379
-          description: "Redis for Infisical"
-          resourceLimits:
-            memoryLimitInMB: "{{ (caprover_infisical_redis_memory_limit | regex_replace('[^0-9]', '')) | int }}"
-        headers:
-          x-captain-auth: "{{ cap_token }}"
-        status_code: [200, 400]
-
-    - name: Register Infisical app
-      ansible.builtin.uri:
-        url: "http://{{ ansible_host }}:3000/api/v2/user/apps/appDefinitions/register"
-        method: POST
-        body_format: json
-        body:
-          appName: infisical
-          hasPersistentData: false
-        headers:
-          x-captain-auth: "{{ cap_token }}"
-        status_code: [200, 400]
-
-    - name: Configure Infisical app
-      ansible.builtin.uri:
-        url: "http://{{ ansible_host }}:3000/api/v2/user/apps/appDefinitions/update"
-        method: POST
-        body_format: json
-        body:
-          appName: infisical
-          instanceCount: 1
-          captainDefinitionContent:
-            schemaVersion: 2
-            imageName: "infisical/infisical:{{ caprover_infisical_version }}"
-          envVars:
-            - key: ENCRYPTION_KEY
-              value: "{{ caprover_infisical_encryption_key }}"
-            - key: AUTH_SECRET
-              value: "{{ caprover_infisical_auth_secret }}"
-            - key: DB_CONNECTION_URI
-              value: "postgresql://infisical:{{ caprover_infisical_db_password }}@srv-captain--infisical-db:5432/infisical"
-            - key: REDIS_URL
-              value: "redis://srv-captain--infisical-redis:6379"
-            - key: SITE_URL
-              value: "https://infisical.{{ caprover_root_domain }}"
-            - key: NODE_ENV
-              value: production
-          volumes: []
-          ports: []
-          containerHttpPort: 8080
-          description: "Infisical — secrets management platform"
-          resourceLimits:
-            memoryLimitInMB: "{{ (caprover_infisical_memory_limit | regex_replace('[^0-9]', '')) | int }}"
-            cpuLimit: "{{ caprover_infisical_cpu_limit }}"
-        headers:
-          x-captain-auth: "{{ cap_token }}"
-        status_code: [200, 400]
-      no_log: true
-
 # ── Enable HTTPS for all apps ────────────────────────────────────────
 
 - name: Enable HTTPS on deployed apps
@@ -400,8 +265,7 @@
             (caprover_prometheus_enabled | bool) | ternary(['prometheus'], []) +
             (caprover_grafana_enabled | bool) | ternary(['grafana'], []) +
             (caprover_uptimekuma_enabled | bool) | ternary(['uptime-kuma'], []) +
-            (caprover_codeserver_enabled | bool) | ternary(['code-server'], []) +
-            (caprover_infisical_enabled | bool) | ternary(['infisical'], [])
+            (caprover_codeserver_enabled | bool) | ternary(['code-server'], [])
           }}
 
     - name: Enable HTTPS for each app
@@ -438,8 +302,5 @@
       {% endif %}
       {% if caprover_codeserver_enabled | bool %}
       code-server        : https://code-server.{{ caprover_root_domain }}
-      {% endif %}
-      {% if caprover_infisical_enabled | bool %}
-      Infisical          : https://infisical.{{ caprover_root_domain }}
       {% endif %}
       ═══════════════════════════════════════════════════

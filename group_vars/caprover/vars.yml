@@ -91,16 +91,6 @@ caprover_codeserver_version: "4.96.4"
 caprover_codeserver_memory_limit: "2G"
 caprover_codeserver_cpu_limit: "2.0"
 
-# Infisical — secrets management
-caprover_infisical_enabled: true
-caprover_infisical_version: "v0.105.1-postgres"
-caprover_infisical_memory_limit: "1G"
-caprover_infisical_cpu_limit: "1.0"
-caprover_infisical_postgres_version: "16-alpine"
-caprover_infisical_redis_version: "7-alpine"
-caprover_infisical_postgres_memory_limit: "512M"
-caprover_infisical_redis_memory_limit: "128M"
-
 # Redis exporter — for Prometheus
 caprover_redis_exporter_enabled: true
 

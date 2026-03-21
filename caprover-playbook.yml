@@ -7,14 +7,13 @@
 # Architecture:
 #   Leader (NY)     — CapRover captain, Prometheus, Grafana, Uptime Kuma
 #   Worker (LA)     — code-server, overflow capacity
-#   Worker (Chicago) — Infisical, overflow capacity
+#   Worker (Chicago) — overflow capacity
 #
 # Services deployed via CapRover API:
 #   - Prometheus    — scrapes OpenClaw metrics externally
 #   - Grafana       — dashboards and alerting
 #   - Uptime Kuma   — external uptime monitoring
 #   - code-server   — browser-based VS Code IDE
-#   - Infisical     — secrets management platform
 #
 # Prerequisites:
 #   1. DNS: *.dev wildcard A record → leader IP (192.3.81.8)
@@ -199,13 +198,6 @@
           - not (caprover_codeserver_enabled | bool) or
             (caprover_codeserver_password is defined and
              caprover_codeserver_password | length > 0)
-          - not (caprover_infisical_enabled | bool) or
-            (caprover_infisical_encryption_key is defined and
-             caprover_infisical_encryption_key | length > 0 and
-             caprover_infisical_auth_secret is defined and
-             caprover_infisical_auth_secret | length > 0 and
-             caprover_infisical_db_password is defined and
-             caprover_infisical_db_password | length > 0)
         fail_msg: "App secrets must be set in vault for enabled apps"
         quiet: true
 
