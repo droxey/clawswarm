@@ -86,6 +86,7 @@ services:
     volumes:
       - openclaw-data:/root/.openclaw
       - {{ uploads_dir }}:/root/uploads
+      - /usr/bin/docker:/usr/bin/docker:ro
     networks:
       - openclaw-net
       - proxy-net
