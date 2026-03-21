@@ -1,23 +1,23 @@
 ---
 # CapRover Swarm Inventory — 3x KVM VPS @ Racknerd
-# Leader: New York | Workers: Los Angeles, Chicago
-# All nodes: 8 GB RAM, 6 CPU Cores, Ubuntu 24.04
+# Leader: New York | Workers: Chicago, Los Angeles
+# All nodes: 8 GB RAM, 150 GB NVMe, Ubuntu 24.04
 
 all:
   children:
     caprover_leader:
       hosts:
         caprover-ny:
-          ansible_host: 192.3.81.8
+          ansible_host: 107.174.35.212
           caprover_role: leader
 
     caprover_workers:
       hosts:
-        caprover-la:
-          ansible_host: 107.174.51.158
-          caprover_role: worker
         caprover-chi:
-          ansible_host: 198.23.228.15
+          ansible_host: 172.245.242.59
+          caprover_role: worker
+        caprover-la:
+          ansible_host: 104.168.79.126
           caprover_role: worker
 
     caprover:
