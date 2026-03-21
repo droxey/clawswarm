@@ -20,3 +20,7 @@ group_vars/all/zzz_bootstrap.yml
 cloudserver.yml
 .charm/
 .context/
+group_vars/all/vars.deploy.yml
+group_vars/caprover/vars.deploy.yml
+inventory/hosts.deploy.yml
+inventory/caprover-hosts.deploy.yml
