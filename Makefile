@@ -1,7 +1,7 @@
-.PHONY: lint test role-tests deploy verify check caprover-check caprover-deploy caprover-verify scan bootstrap setup update-pins update-pins-dry help
+.PHONY: lint test role-tests deploy verify check caprover-check caprover-deploy caprover-verify scan bootstrap setup update-pins update-pins-dry orchestrator help
 
 lint:                          ## Run all linters (yamllint + ansible-lint + shellcheck + syntax check)
-	yamllint . && ansible-lint && ansible-playbook playbook.yml --syntax-check && ansible-playbook caprover-playbook.yml --syntax-check && bash -n bootstrap.sh && shellcheck bootstrap.sh && bash -n scripts/update-pins.sh && shellcheck scripts/update-pins.sh
+	yamllint . && ansible-lint && ansible-playbook playbook.yml --syntax-check && ansible-playbook caprover-playbook.yml --syntax-check && bash -n bootstrap.sh && shellcheck bootstrap.sh && bash -n scripts/update-pins.sh && shellcheck scripts/update-pins.sh && bash -n scripts/caprover-bootstrap-keys.sh && shellcheck scripts/caprover-bootstrap-keys.sh
 
 test:                          ## Run all Molecule tests (project, CapRover, and role-level)
 	molecule test -s default && molecule test -s caprover && $(MAKE) role-tests
@@ -26,6 +26,9 @@ deploy: update-pins            ## Deploy OpenClaw to target server (updates pins
 verify:                        ## Run verification tasks only
 	ansible-playbook playbook.yml -i inventory/hosts.yml --tags verify --ask-vault-pass
 
+caprover-bootstrap:            ## Distribute SSH keys to fresh CapRover servers (one-time)
+	bash scripts/caprover-bootstrap-keys.sh
+
 caprover-deploy:               ## Deploy CapRover monitoring swarm (3 nodes)
 	ansible-playbook caprover-playbook.yml -i inventory/caprover-hosts.yml --ask-vault-pass
 
@@ -41,6 +44,10 @@ scan:                          ## Scan for secret leaks (requires gitleaks)
 	else \
 		echo "SKIP scan: gitleaks not found — install with 'brew install gitleaks'"; \
 	fi
+
+orchestrator:                  ## Open agent orchestrator dashboard via SSH tunnel
+	@echo "\n\033[36m🔗 Agent Orchestrator: http://localhost:3000"
+	@ssh -L 3000:127.0.0.1:3000 deploy@38.49.214.92 -p 9922
 
 check: lint test scan          ## Run lint + test + scan (full CI equivalent)
 
