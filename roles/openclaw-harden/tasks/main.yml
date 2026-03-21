@@ -184,7 +184,9 @@
   check_mode: false
 
 - name: Wait for openclaw to be healthy after UI config
-  ansible.builtin.command: "docker inspect openclaw --format={{ docker_health_format }}"
+  ansible.builtin.shell: >
+    docker inspect openclaw
+    --format '{{ docker_health_format }}'
   register: _oc_state
   until: _oc_state.stdout == "healthy"
   retries: 24
@@ -320,7 +322,7 @@
     state: restarted
 
 - name: Wait for OpenClaw to become healthy after hardening restart
-  ansible.builtin.command: >
+  ansible.builtin.shell: >
     docker inspect openclaw
     --format '{{ docker_health_format }}'
   register: harden_health_check

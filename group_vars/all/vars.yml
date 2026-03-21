@@ -68,10 +68,47 @@ egress_allowed_domains:
   - "*.openai.com"
   - "*.voyageai.com"
 egress_extra_domains:
+  # ── LLM Providers ──────────────────────────────────────────────────
   - "*.groq.com"
   - "*.googleapis.com"
   - "*.x.ai"
+  - "*.deepseek.com"
+  - "*.openrouter.ai"
+  - "*.baidubce.com"
+  - "*.mistral.ai"
+  - "*.together.xyz"
+  - "*.fireworks.ai"
+  - "*.perplexity.ai"
+  - "*.cohere.ai"
+  - "*.cohere.com"
+  - "*.replicate.com"
+  - "*.cerebras.ai"
+  - "*.sambanova.ai"
+  - "integrate.api.nvidia.com"
+  - "api.ai21.com"
+  - "*.openai.azure.com"
+  # ── Embeddings & Reranking ──────────────────────────────────────────
+  - "api.jina.ai"
+  - "router.huggingface.co"
+  # ── Search & Web Retrieval ─────────────────────────────────────────
+  - "api.tavily.com"
+  - "api.search.brave.com"
+  - "api.exa.ai"
+  - "serpapi.com"
+  - "api.wolframalpha.com"
+  # ── Web Scraping & Code Execution ──────────────────────────────────
+  - "api.firecrawl.dev"
+  - "*.e2b.dev"
+  # ── Channel Integrations ───────────────────────────────────────────
   - "*.telegram.org"
+  - "discord.com"
+  - "*.discordapp.com"
+  - "gateway.discord.gg"
+  - "api.slack.com"
+  - "graph.facebook.com"
+  # ── OpenAI Asset Domains ───────────────────────────────────────────
+  - "oaidalleapiprodscus.blob.core.windows.net"
+  - "*.oaiusercontent.com"
 
 # ── LiteLLM ──────────────────────────────────────────────────────────
 litellm_models:
